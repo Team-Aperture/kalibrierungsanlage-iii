@@ -39,6 +39,8 @@ export interface LightingState {
   occluders: Occluder[];
   /** Global strength of coloured tint takeover. */
   tintGain?: number;
+  /** Depth fog: light fades below z0 down to z1 by `amount` (deep pits). */
+  fog?: { z0: number; z1: number; amount: number };
 }
 
 const HUE_INDEX: Record<Hue, number> = { neutral: 0, green: 1, amber: 2, red: 3, cold: 4 };
@@ -176,6 +178,10 @@ export function shade(surf: Surface, state: LightingState): Uint8Array {
         const c = L.intensity * a;
         total += c;
         hueAcc[HUE_INDEX[L.hue]] += c;
+      }
+      if (state.fog && Z < state.fog.z0) {
+        const t = Math.min(1, (state.fog.z0 - Z) / (state.fog.z0 - state.fog.z1));
+        total *= 1 - state.fog.amount * t * t * (3 - 2 * t);
       }
       const v = surf.alb[i] * total;
       let ramp = mat.ramp;

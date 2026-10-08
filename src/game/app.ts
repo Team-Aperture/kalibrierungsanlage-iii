@@ -463,6 +463,24 @@ export class GameApp {
     this.hasSave = true;
   }
 
+  /** Test hook: jump to a room with the prerequisites for being there. */
+  debugWarp(room: RoomId): void {
+    const d = defaultSave();
+    d.flags['intro.done'] = true;
+    if (room === 'schleuse') {
+      d.flags['fuse.taken'] = true;
+      d.flags['fuse.inserted'] = true;
+      d.puzzles.energiepfad.solved = true;
+      d.puzzles.energiepfad.rot = [1, 2, 2, 1, 0, 2, 1, 0, 3];
+      d.doors.schleuse01 = 'OPEN';
+    }
+    d.room = room;
+    this.ui.closeAll();
+    this.state.reset(d);
+    this.hasSave = true;
+    this.enterPlay({ roomId: room, arrival: 'start' });
+  }
+
   /** Page (CSS pixel) coordinates of a world point – used by automated tests. */
   debugScreenPoint(x: number, y: number, z = 0): { x: number; y: number } | null {
     const s = this.scene;

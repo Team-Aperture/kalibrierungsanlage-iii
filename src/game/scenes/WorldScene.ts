@@ -747,6 +747,7 @@ export class WorldScene extends Phaser.Scene {
     this.veil.update();
 
     if (!this.attract) {
+      this.app.tick();
       this.updateFocus();
       this.updateFocusMarker(time);
       this.checkZones();
