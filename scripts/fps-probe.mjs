@@ -1,0 +1,22 @@
+// Dev helper: compare frame rate with and without the CRT layer / game canvas.
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+await page.goto('http://localhost:4173/kalibrierungsanlage-iii/?e2e=1');
+await page.waitForFunction(() => window.__ka3?.mode === 'menu', null, { timeout: 90000 });
+await page.click('#btn-new');
+await page.waitForFunction(() => window.__ka3.state.flag('intro.done') && !window.__ka3.scene.inputLocked, null, { timeout: 60000 });
+const fps = () => page.evaluate(() => new Promise((r) => { let n = 0; const t = performance.now(); const f = () => { n++; if (performance.now() - t < 2500) requestAnimationFrame(f); else r(Math.round((n * 1000) / (performance.now() - t))); }; requestAnimationFrame(f); }));
+console.log('normal', await fps());
+await page.evaluate(() => document.body.classList.add('no-flicker'));
+console.log('no flicker layer', await fps());
+await page.evaluate(() => { document.getElementById('crt').style.background = 'repeating-linear-gradient(to bottom, rgba(4,6,12,0.5) 0, rgba(4,6,12,0.5) 1.5px, transparent 1.5px, transparent 3px)'; });
+console.log('scanlines only', await fps());
+await page.evaluate(() => { document.body.classList.remove('no-flicker'); document.getElementById('crt').style.background = ''; });
+await page.evaluate(() => (document.getElementById('crt').style.display = 'none'));
+console.log('no crt', await fps());
+await page.evaluate(() => (document.querySelector('#game canvas').style.visibility = 'hidden'));
+console.log('no crt, hidden canvas', await fps());
+await page.evaluate(() => { document.getElementById('crt').style.display = ''; document.querySelector('#game canvas').style.visibility = ''; window.__ka3.game.loop.sleep(); });
+console.log('crt, phaser loop asleep', await fps());
+await browser.close();
