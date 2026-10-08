@@ -1,4 +1,8 @@
+<p align="center"><img src="docs/brand/banner.png" alt="Die Kalibrierungsanlage III – Die Übergabe" width="720"></p>
+
 # Die Kalibrierungsanlage III — Kapitel 0: NULLSIGNAL
+
+<img src="docs/brand/emblem-simple.png" alt="Team_Aperture emblem" width="96" align="right">
 
 **Team_Aperture · Prototyp 0.1** — a browser-based **2.5D pixel-art adventure**, and the technical and artistic foundation for the third *Kalibrierungsanlage* game.
 
@@ -52,6 +56,20 @@ A curious playthrough (reading terminals, the logbook and the shift log, inspect
 | ![Puzzle](docs/images/puzzle.png) | ![Lit room](docs/images/wartungszelle-lit.png) |
 | ![Observation walkway](docs/images/schleuse.png) | ![Phone portrait](docs/images/phone-portrait.png) |
 
+## Branding
+
+The Team_Aperture emblem (a small red robot and a taller green robot high-fiving inside a red/green ring) and the KA-III banner are pixel art generated from the same 28-colour palette as the game. There is a reusable logo system with four emblem sizes (full, simple, screen, badge), subtle light animation and a CRT boot reveal. The marks appear on:
+
+- the boot screen, title screen, menus, HUD, favicon and ending;
+- in the world, on terminals T-01 and T-07, a painted mural in the machine hall, and crate stickers.
+
+Details: **[docs/BRANDING.md](docs/BRANDING.md)**.
+
+| | |
+| --- | --- |
+| ![Title screen](docs/images/title.png) | ![Boot screen](docs/images/boot.png) |
+| ![T-01 with the emblem](docs/images/inworld-t01.png) | ![Hall mural](docs/images/inworld-hall-zoom.png) |
+
 ## Tests
 
 ```bash
@@ -98,6 +116,7 @@ The site is served at `https://<owner>.github.io/kalibrierungsanlage-iii/`. Any 
 ```
 src/core      pure engine math (projection, depth sort, collision, nav grid)
 src/art       procedural pixel-art pipeline (G-buffer, baked lighting, Bayer dithering, overlays, player sprite)
+src/art/brand Team_Aperture emblem + KA-III banner (logo system, animation, decals, monitor rasters)
 src/content   layouts, item texts, hint texts
 src/game      app, scenes, rooms (verbs + German texts + scripts), player, puzzle logic, input
 src/state     save data, validation/normalisation, settings
@@ -113,5 +132,6 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the rendering decisions
 ## Credits and licences
 
 - Code, art and sound are generated in this repository by Team_Aperture's prototype.
+- The Team_Aperture emblem and the KA-III logo are Team_Aperture's own marks, redrawn here as pixel art. They are not Portal / Aperture Science branding.
 - Fonts: Share Tech Mono, Space Mono and VT323 (SIL Open Font License), bundled via Fontsource.
 - Engine: Phaser 3 (MIT).

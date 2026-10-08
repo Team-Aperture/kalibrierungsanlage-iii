@@ -12,6 +12,8 @@ import { loadSettings, saveSettings } from '../state/settings';
 import type { ItemId, RoomId, Settings } from '../state/types';
 import { endingPanel } from '../ui/ending';
 import { inventoryPanel } from '../ui/inventory';
+import type { BootScreen } from '../ui/boot';
+import { setBrandMotion } from '../ui/brand';
 import { aboutPanel, confirmPanel, mainMenu, pauseMenu, settingsPanel } from '../ui/menus';
 import { puzzlePanel } from '../ui/puzzlePanel';
 import { reader } from '../ui/terminal';
@@ -34,6 +36,8 @@ export class GameApp {
   scene: WorldScene | null = null;
   mode: Mode = 'boot';
   private hasSave = false;
+  /** Boot screen shown by main.ts while textures bake. */
+  bootScreen: BootScreen | null = null;
   private saveNotice = '';
   private persistTimer = 0;
   private pauseModal: HTMLElement | null = null;
@@ -124,7 +128,9 @@ export class GameApp {
       if (res.reason === 'corrupt') this.saveNotice = 'Der gespeicherte Spielstand war beschädigt und wurde ignoriert.';
       if (res.reason === 'incompatible') this.saveNotice = 'Der gespeicherte Spielstand stammt aus einer inkompatiblen Version.';
     }
-    document.getElementById('loader')?.remove();
+    if (this.bootScreen) void this.bootScreen.finish();
+    else document.getElementById('loader')?.remove();
+    this.bootScreen = null;
     this.showMainMenu();
   }
 
@@ -157,6 +163,7 @@ export class GameApp {
     const menu = mainMenu({
       hasSave: this.hasSave,
       saveInfo: info,
+      signal: this.hasSave && this.state.data.chapterComplete,
       onContinue: () => {
         this.ui.closeModal(menu.el);
         this.continueGame();
@@ -320,6 +327,7 @@ export class GameApp {
   applySettings(s: Settings, save: boolean): void {
     this.settings = s;
     this.ui.applySettings(s);
+    setBrandMotion(s.reducedMotion);
     this.audio.setVolume(s.volume, s.muted);
     if (save) saveSettings(s);
   }

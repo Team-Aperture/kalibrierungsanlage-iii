@@ -35,6 +35,7 @@ export const M = {
   AMBER_FLAT: 16,
   RED_FLAT: 17,
   GREEN_FLAT: 18,
+  GREEN_PAINT: 19,
 } as const;
 
 export const MATERIALS: Record<number, Material> = {
@@ -56,4 +57,5 @@ export const MATERIALS: Record<number, Material> = {
   [M.AMBER_FLAT]: { ramp: RAMP.amber, tint: 0, flat: true },
   [M.RED_FLAT]: { ramp: RAMP.red, tint: 0, flat: true },
   [M.GREEN_FLAT]: { ramp: RAMP.green, tint: 0, flat: true },
+  [M.GREEN_PAINT]: { ramp: RAMP.green, tint: 0.3 },
 };

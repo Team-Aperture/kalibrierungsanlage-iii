@@ -10,6 +10,7 @@ import { clamp, fbm, hash2, smoothstep, valueNoise } from '../../core/rng';
 import type { Light, LightingState, Occluder } from '../light';
 import { M } from '../materials';
 import { C } from '../palette';
+import { emblemDecal } from '../brand/decal';
 import { bevel, darkPaint, grime, hazard, inRect, rivets, rustStreaks, seam, stencil, steel, vent } from '../shaders';
 import { FACE, NO_EMI, Surface, TAG, type Frag, type Shader } from '../surface';
 
@@ -1049,7 +1050,9 @@ export function buildBench(): Surface {
 /** Stacked transport crates by the door. */
 export function buildCrates(): Surface {
   const s = surfaceFor(WZ.crates);
-  const crate = (seed: number, label: string | null): Shader => (f) => {
+  const crate = (seed: number, label: string | null, sticker = false): Shader => (f) => {
+    // Team_Aperture sticker on the side of the spare-parts crate.
+    if (sticker && f.tag === FACE.RIGHT && emblemDecal(f, { variant: 'badge', u0: 5.5, vTop: 15.5, wear: 0.08, seed })) return true;
     f.mat = M.WOOD;
     f.alb = 0.48 + (fbm(f.u * 0.5, f.v * 0.08, seed, 2) - 0.5) * 0.14;
     const edge = f.u < 1.5 || f.u > f.w - 1.5 || f.v < 1.5 || f.v > f.h - 1.5;
@@ -1064,7 +1067,7 @@ export function buildCrates(): Surface {
     bevel(f, 0.2);
     return true;
   };
-  s.box(166, 6, 0, 190, 32, 16, crate(101, 'ERSATZ'));
+  s.box(166, 6, 0, 190, 32, 16, crate(101, 'ERSATZ', true));
   s.box(170, 10, 16, 186, 27, 28, crate(102, null));
   return s;
 }

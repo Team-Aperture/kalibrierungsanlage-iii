@@ -9,6 +9,7 @@ import { ITEMS } from '../content/items';
 import { iconCanvas } from '../art/icons';
 import type { ItemId, Settings } from '../state/types';
 import { Dialogue } from './dialogue';
+import { emblemMark } from './brand';
 import { button, h, trapFocus } from './dom';
 import { Joystick } from './joystick';
 
@@ -48,6 +49,7 @@ export class UI {
   items: ItemId[] = [];
   onItemTap: ((item: ItemId) => void) | null = null;
   private statusEl: HTMLElement;
+  private statusBadge: HTMLElement;
   private invBtn: HTMLButtonElement;
   private menuBtn: HTMLButtonElement;
   private markerBtn: HTMLButtonElement;
@@ -79,6 +81,8 @@ export class UI {
     // HUD (top bar).
     this.menuBtn = button('Menü', () => this.handlers.pause(), { key: 'Esc', aria: 'Pausenmenü öffnen' });
     this.statusEl = h('div', { class: 'status', role: 'status' });
+    this.statusBadge = emblemMark('badge', { cls: 'hud-badge', label: '' });
+    this.statusBadge.setAttribute('aria-hidden', 'true');
     this.markerBtn = button('◇', () => this.handlers.markers(), { key: 'Tab', aria: 'Interaktive Objekte hervorheben' });
     this.invBtn = button('Inventar', () => this.handlers.inventory(), { key: 'I', aria: 'Inventar öffnen' });
     this.hud = h('div', { id: 'hud' }, h('div', { class: 'hud-top' }, this.menuBtn, this.statusEl, this.markerBtn, this.invBtn));
@@ -193,6 +197,7 @@ export class UI {
 
   setStatus(text: string): void {
     this.statusEl.innerHTML = '';
+    this.statusEl.append(this.statusBadge);
     const parts = text.split('·').map((s) => s.trim());
     parts.forEach((p, i) => {
       if (i > 0) this.statusEl.append(' · ');

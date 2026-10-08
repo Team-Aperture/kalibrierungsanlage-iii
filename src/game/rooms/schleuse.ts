@@ -13,6 +13,7 @@ import { SL } from '../../content/rooms/schleuse.layout';
 import type { Box3 } from '../../content/rooms/wartungszelle.layout';
 import { bakedInfo } from '../../art/bake';
 import { drawText } from '../../art/font';
+import { drawScreenEmblem } from '../../art/brand/screens';
 import { C } from '../../art/palette';
 import { LIGHTING, PENDANTS, PISTON_FRAMES, SENSOR_EYE, T07_SCREEN, WALKWAY_BOX } from '../../art/rooms/schleuse';
 import { bakeSchleuse, GATE_FRAMES, SLK, slArt } from '../../art/rooms/schleuseBake';
@@ -170,6 +171,29 @@ const props: PropDef[] = [
       hotspot: { x: 60, y: SL.tanks.y - 16, z: SL.tanks.z + SL.tanks.r + 4 },
       reach: 16,
       verbs: () => [{ ...look(async (c) => c.say('Zwei Druckbehälter auf Stahlsätteln. Auf dem Warnschild: DRUCK. Die Manometer sind zu weit weg, um sie abzulesen.')), primary: true }],
+    },
+  },
+  {
+    id: 'wandbild',
+    box: { x0: -2, y0: 70, z0: 8, x1: 1, y1: 118, z1: 56 },
+    texture: null,
+    embedded: true,
+    interact: {
+      name: 'Wandbild',
+      points: [{ x: 14, y: 30 }],
+      hotspot: { x: 0, y: 94, z: 60 },
+      reach: 16,
+      verbs: () => [
+        {
+          ...look(async (c) =>
+            c.say(
+              'Ein Emblem, groß auf die Hallenwand gemalt und halb abgeblättert: ein kleiner Roboter mit rotem Auge und ein großer mit grünem. Sie klatschen sich ab.',
+              'Der Ring ist mit Leuchtfarbe gemalt, links rot, rechts grün. Er glimmt noch.',
+            ),
+          ),
+          primary: true,
+        },
+      ],
     },
   },
   {
@@ -473,6 +497,7 @@ async function signalEvent(ctx: ScriptCtx): Promise<void> {
     ctx.setFlag('signal.started');
     await ctx.panTo({ x: 268, y: 14, z: 30 }, 1300);
     t07.mode = 'wake';
+    t07.t = -1;
     ctx.sfx('terminal');
     await ctx.wait(rm ? 300 : 900);
     t07.mode = 'signal';
@@ -583,11 +608,15 @@ function t07Raster(mode: typeof t07.mode, t: number): Uint8Array {
   if (mode === 'off') return r;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) r[y * w + x] = y % 2 === 0 ? C.G0 : C.G1;
   if (mode === 'wake') {
-    for (let k = 0; k < 40; k++) {
-      const x = Math.floor(Math.random() * w);
-      const y = Math.floor(Math.random() * h);
-      r[y * w + x] = Math.random() > 0.5 ? C.G2 : C.MINT;
-    }
+    // The terminal wakes on its own: static, then the emblem rolls in.
+    const p = t07.t < 0 ? 0 : (t - t07.t) / 650;
+    if (p < 0.25) {
+      for (let k = 0; k < 40; k++) {
+        const x = Math.floor(Math.random() * w);
+        const y = Math.floor(Math.random() * h);
+        r[y * w + x] = Math.random() > 0.5 ? C.G2 : C.MINT;
+      }
+    } else drawScreenEmblem(r, w, h, { ms: t, boot: (p - 0.25) / 0.75 });
     return r;
   }
   if (mode === 'saved') {
@@ -670,7 +699,8 @@ function setup(ctx: ScriptCtx) {
     refresh,
     update: (dt: number, time: number) => {
       // T-07 screen.
-      const key = `${t07.mode}:${t07.mode === 'signal' ? Math.floor(time / 60) : t07.mode === 'wake' ? Math.floor(time / 50) : 0}`;
+      if (t07.mode === 'wake' && t07.t < 0) t07.t = time;
+      const key = `${t07.mode}:${t07.mode === 'signal' ? Math.floor(time / 60) : t07.mode === 'wake' ? Math.floor(time / 45) : 0}`;
       if (key !== lastKey) {
         lastKey = key;
         art.screen.renderInto(screenTex.getContext(), t07Raster(t07.mode, time));

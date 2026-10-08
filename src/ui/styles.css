@@ -611,62 +611,448 @@ body.reduce-motion .btn.attention {
   letter-spacing: 0.3em;
 }
 
-/* Main menu */
+/* Brand marks (pixel-art canvases from src/art/brand) */
 
-.menu {
-  max-width: 560px;
-  background: rgba(12, 15, 23, 0.9);
+.brand-mark {
+  display: inline-block;
+  position: relative;
+  line-height: 0;
+  flex: none;
 }
 
-.menu .kicker {
-  font-size: 11px;
-  letter-spacing: 0.4em;
-  color: var(--text);
+.brand-mark canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+/* Monitor marks: a dark phosphor plate with scanlines. */
+.brand-mark.crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(4, 6, 12, 0) 0 1px, rgba(4, 6, 12, 0.35) 1px 2px);
+}
+
+/* Title screen (after the KA-II menu, rebuilt in pixel art) */
+
+.title-screen {
+  flex-direction: column;
+  padding: calc(var(--safe-top) + 34px) calc(var(--safe-right) + 16px) calc(var(--safe-bottom) + 16px) calc(var(--safe-left) + 16px);
+  background: radial-gradient(ellipse at 50% 42%, rgba(7, 8, 13, 0.3) 0%, rgba(7, 8, 13, 0.62) 55%, rgba(7, 8, 13, 0.92) 100%);
+  overflow: hidden;
+}
+
+.title-screen .sys-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(var(--safe-top) + 7px) calc(var(--safe-right) + 18px) 7px calc(var(--safe-left) + 18px);
+  background: rgba(7, 8, 13, 0.88);
+  border-bottom: 1px solid var(--panel-2);
+  font-family: var(--font-crt);
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
-.menu .kicker .accent {
+.sys-bar .sys-status {
+  color: var(--mint);
+}
+
+.sys-bar .sys-status.standby {
+  color: var(--amber);
+}
+
+.sys-bar .dim {
+  color: var(--text);
+}
+
+.sys-bar .amber {
+  color: var(--amber);
+}
+
+.blink {
+  animation: blink 1.2s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.title-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 3.2vh, 30px);
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.title-screen .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.6vh, 14px);
+  animation: heroIn 0.9s ease both;
+}
+
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(20px); }
+}
+
+.hero-logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 22px);
+  max-width: 100%;
+}
+
+/* Soft breathing glow behind the banner (opacity only: cheap to composite). */
+.hero-logo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -12% 4%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(82, 211, 156, 0.1), rgba(82, 211, 156, 0) 62%);
+  animation: breathe 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.hero-banner {
+  position: relative;
+  z-index: 1;
+}
+
+/* Pixel LED bars left (red) and right (green) of the banner. */
+.hero-light {
+  width: 6px;
+  height: clamp(42px, 13vh, 96px);
+  flex: none;
   color: var(--red);
+  background: repeating-linear-gradient(to bottom, currentColor 0 6px, transparent 6px 9px);
+  box-shadow: 0 0 14px rgba(242, 47, 47, 0.35);
+  animation: ledL 2.6s steps(4, end) infinite;
 }
 
-.menu .title {
-  font-family: var(--font-title);
-  font-weight: 700;
-  color: var(--text-hi);
-  font-size: clamp(20px, 4.4vw, 30px);
-  letter-spacing: 0.16em;
-  line-height: 1.25;
-  margin: 16px 0 6px;
+.hero-light.r {
+  color: var(--mint);
+  box-shadow: 0 0 14px rgba(82, 211, 156, 0.35);
+  animation-name: ledR;
+  animation-duration: 3.1s;
 }
 
-.menu .subtitle {
+@keyframes ledL {
+  0%, 100% { clip-path: inset(32% 0 32% 0); opacity: 0.45; }
+  50% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+@keyframes ledR {
+  0%, 100% { clip-path: inset(24% 0 24% 0); opacity: 0.55; }
+  50% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+/* A stepped scan bar crosses the banner every nine seconds. */
+.hero-scanbar {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-scanbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  left: -90px;
+  background: linear-gradient(90deg, transparent 0 20%, rgba(82, 211, 156, 0.08) 20% 40%, rgba(82, 211, 156, 0.2) 40% 60%, rgba(82, 211, 156, 0.08) 60% 80%, transparent 80%);
+  animation: scanbar 9s ease-in-out 4s infinite;
+}
+
+@keyframes scanbar {
+  0%, 60% { left: -90px; }
+  90%, 100% { left: calc(100% + 20px); }
+}
+
+.title-screen .subtitle {
   font-size: 13px;
   letter-spacing: 0.42em;
   color: var(--mint);
+  text-align: center;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+}
+
+.title-screen .meta {
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--text);
+  text-align: center;
+  max-width: 560px;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+}
+
+.title-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 960px;
+  animation: menuIn 0.6s ease 0.5s both;
+}
+
+@keyframes menuIn {
+  from { opacity: 0; }
+}
+
+/* Bracket buttons: "[ NEUES SPIEL ]". */
+.ka-btn {
+  background: rgba(7, 8, 13, 0.62);
+  border: 1px solid var(--line-hi);
+  padding: 0 22px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--text-hi);
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+
+.ka-btn > span:first-child::before {
+  content: '[ ';
+  color: var(--text-dim);
+}
+
+.ka-btn > span:first-child::after {
+  content: ' ]';
+  color: var(--text-dim);
+}
+
+.ka-btn:hover {
+  border-color: var(--cyan);
+  color: var(--text-hi);
+  background: rgba(60, 242, 226, 0.06);
+}
+
+.ka-btn.primary {
+  border-color: var(--mint);
+  color: var(--mint);
+}
+
+.ka-btn.primary > span:first-child::before,
+.ka-btn.primary > span:first-child::after {
+  color: var(--mint-dark);
+}
+
+.ka-btn.primary:hover {
+  background: rgba(82, 211, 156, 0.1);
+  color: var(--text-hi);
+}
+
+.ka-btn:active {
+  transform: translateY(1px);
+}
+
+.title-screen .foot {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-align: center;
+  max-width: 520px;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+  animation: menuIn 0.6s ease 0.8s both;
+}
+
+.idle-comment {
+  position: absolute;
+  left: calc(var(--safe-left) + 20px);
+  bottom: calc(var(--safe-bottom) + 20px);
+  max-width: 320px;
+  padding: 8px 14px;
+  background: rgba(12, 15, 23, 0.9);
+  border: 1px solid var(--panel-2);
+  border-left: 2px solid #4e8fd0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+}
+
+.idle-comment.visible {
+  opacity: 1;
+  transform: none;
+}
+
+.idle-comment .idle-who {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: #4e8fd0;
+  margin-bottom: 3px;
+}
+
+.idle-comment .idle-text {
+  font-family: var(--font-crt);
+  font-size: 17px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.title-screen .studio {
+  position: absolute;
+  right: calc(var(--safe-right) + 18px);
+  bottom: calc(var(--safe-bottom) + 14px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  animation: menuIn 0.8s ease 1s both;
+}
+
+.studio .studio-emblem canvas {
+  width: 96px;
+  height: 96px;
+}
+
+.studio-text {
+  text-align: right;
+  order: -1;
+}
+
+.studio-name {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  color: var(--text-hi);
+}
+
+.studio-ver {
+  margin-top: 4px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+}
+
+@media (max-width: 768px), (max-height: 520px) {
+  .idle-comment {
+    display: none;
+  }
+  .studio .studio-emblem canvas {
+    width: 48px;
+    height: 48px;
+  }
+  .studio-name {
+    font-size: 11px;
+  }
+  .title-screen .sys-bar {
+    font-size: 13px;
+    padding-left: calc(var(--safe-left) + 10px);
+    padding-right: calc(var(--safe-right) + 10px);
+  }
+}
+
+@media (max-height: 520px) {
+  .title-screen .foot {
+    display: none;
+  }
+  .title-menu {
+    gap: 8px;
+  }
+}
+
+/* Portrait phones: stacked buttons, the studio mark under the menu. */
+@media (max-width: 560px) and (orientation: portrait) {
+  .title-screen .sys-bar {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .title-screen {
+    padding-top: calc(var(--safe-top) + 52px);
+    padding-bottom: calc(var(--safe-bottom) + 76px);
+  }
+  .title-menu {
+    flex-direction: column;
+    align-items: stretch;
+    width: min(100%, 340px);
+    gap: 8px;
+  }
+  .title-screen .studio {
+    left: 0;
+    right: 0;
+    justify-content: center;
+  }
+  .studio-text {
+    text-align: left;
+    order: 1;
+  }
+}
+
+/* About panel header with the emblem. */
+.about-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.about-head h2 {
   margin-bottom: 4px;
 }
 
-.menu .meta {
+.about-emblem canvas {
+  width: 96px;
+  height: 96px;
+}
+
+.about-studio {
   font-size: 11px;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.3em;
   color: var(--text-dim);
 }
 
-.menu .foot {
-  margin-top: 18px;
-  font-size: 11px;
-  line-height: 1.6;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
+@media (max-width: 480px) {
+  .about-emblem canvas {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.label-row .label-badge {
+  align-self: center;
+}
+
+/* HUD: the badge in front of the status line. */
+.hud-badge {
+  vertical-align: -3px;
+  margin-right: 10px;
+}
+
+#app.portrait .hud-badge {
+  display: none;
 }
 
 .palette-strip {
   display: grid;
   grid-template-columns: repeat(28, 1fr);
   height: 10px;
-  margin: 16px 0 4px;
+  margin: 12px 0 4px;
   border: 1px solid var(--line);
 }
 
@@ -735,6 +1121,14 @@ body.reduce-motion .btn.attention {
   font-size: 11px;
   letter-spacing: 0.3em;
   color: #2a7d5c;
+}
+
+.terminal-view .bar .bar-title {
+  flex: 1;
+}
+
+.terminal-view .term-badge {
+  margin-right: 4px;
 }
 
 .terminal-view .screen {
@@ -997,7 +1391,31 @@ body.reduce-motion .btn.attention {
   opacity: 1;
 }
 
-/* Loader */
+.ending .line2 .brand-mark canvas {
+  width: min(576px, 92vw);
+  height: auto;
+}
+
+.ending .credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 22px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+.ending .credit .brand-mark canvas {
+  width: 48px;
+  height: 48px;
+}
+
+/* Loader = boot screen (KA-II style BIOS with the Team_Aperture splash) */
 
 .loader {
   position: fixed;
@@ -1007,15 +1425,101 @@ body.reduce-motion .btn.attention {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  gap: 14px;
-  font-size: 11px;
-  letter-spacing: 0.4em;
+  gap: clamp(24px, 6vw, 64px);
+  padding: calc(var(--safe-top) + 24px) calc(var(--safe-right) + 24px) calc(var(--safe-bottom) + 24px) calc(var(--safe-left) + 24px);
   color: var(--text);
+  transition: opacity 0.45s ease;
+}
+
+.loader.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0 2px, rgba(0, 0, 0, 0.16) 2px 4px);
+}
+
+.boot-splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.boot-studio {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.32em;
+  color: var(--text-hi);
+  margin-top: 6px;
+}
+
+.boot-sub {
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  color: var(--text-dim);
+}
+
+.boot-console {
+  width: min(420px, 86vw);
+  font-family: var(--font-crt);
+}
+
+.boot-lines {
+  min-height: 13.2em;
+  font-size: 18px;
+  line-height: 1.1;
+  color: var(--mint);
+  letter-spacing: 0.04em;
+}
+
+.boot-line {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.boot-line.visible {
+  opacity: 1;
+  transform: none;
+}
+
+.boot-line.dim {
+  color: var(--text-dim);
+}
+
+.boot-line.warn {
+  color: var(--amber);
+}
+
+.boot-line.err {
+  color: var(--red);
+}
+
+.boot-line.ok {
+  color: var(--cyan);
+}
+
+.boot-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--mint);
+  animation: blink 0.8s step-end infinite;
 }
 
 .loader .bar {
-  width: min(320px, 70vw);
+  margin-top: 14px;
+  width: 100%;
   height: 4px;
   border: 1px solid var(--line);
 }
@@ -1025,6 +1529,43 @@ body.reduce-motion .btn.attention {
   height: 100%;
   width: 0;
   background: var(--mint);
+}
+
+.loader .label {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: var(--text-dim);
+}
+
+.loader.short .boot-lines {
+  min-height: 0;
+}
+
+.loader.short .boot-sub {
+  display: none;
+}
+
+@media (orientation: portrait), (max-width: 640px) {
+  .loader {
+    flex-direction: column;
+    gap: 22px;
+  }
+  .boot-lines {
+    font-size: 15px;
+    min-height: 13.2em;
+  }
+}
+
+@media (max-height: 460px) {
+  .boot-splash .brand-mark canvas {
+    width: 96px !important;
+    height: 96px !important;
+  }
+  .boot-lines {
+    font-size: 14px;
+  }
 }
 
 .sr-only {

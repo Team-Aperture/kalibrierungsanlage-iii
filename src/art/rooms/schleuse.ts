@@ -10,6 +10,7 @@ import { fbm, hash2, smoothstep, valueNoise } from '../../core/rng';
 import type { Light, LightingState, Occluder } from '../light';
 import { M } from '../materials';
 import { C } from '../palette';
+import { emblemDecal, type DecalOpts } from '../brand/decal';
 import { bevel, darkPaint, grime, hazard, inRect, rivets, rustStreaks, seam, stencil, steel, vent } from '../shaders';
 import { FACE, Surface, TAG, type Shader } from '../surface';
 
@@ -134,6 +135,9 @@ const backWallShader: Shader = (f) => {
   return true;
 };
 
+/** Painted emblem on the hall wall left of the entrance (face coordinates). */
+export const HALL_EMBLEM: DecalOpts = { variant: 'simple', u0: 82, vTop: SL.PD + 56, wear: 0.16, seed: 360, glow: true };
+
 const leftWallShader: Shader = (f) => {
   // +x face of the left wall: u = PY − y, v = z + PD.
   const y = f.y;
@@ -156,6 +160,8 @@ const leftWallShader: Shader = (f) => {
     // Upper hall wall beyond the walkway.
     darkPaint(f, 0.36, 353);
     if (seam(f.u, 40, 1)) f.alb -= 0.1;
+    // The Team_Aperture emblem, painted large and worn, with luminous arcs and eyes.
+    if (emblemDecal(f, HALL_EMBLEM)) return true;
     if (Math.abs(z - 64) < 4) {
       steel(f, 0.55, 354);
       if (stencil(f, 'HALLE 0', PY - 150, 66)) f.alb = 0.95;
@@ -582,7 +588,9 @@ export function buildCrates2(): Surface {
   s.box(x0, y0, 0, x1, y1, z1, (f) => {
     darkPaint(f, 0.46, 481);
     if (f.u < 1.2 || f.u > f.w - 1.2 || f.v < 1.2 || f.v > f.h - 1.2) f.alb += 0.15;
-    if (f.tag === FACE.LEFT && stencil(f, 'KA', 6, 12)) {
+    // Team_Aperture sticker on the front, the KA mark moved to the side.
+    if (f.tag === FACE.LEFT && emblemDecal(f, { variant: 'badge', u0: 1.5, vTop: 16.5, wear: 0.1, seed: 482 })) return true;
+    if (f.tag === FACE.RIGHT && stencil(f, 'KA', 3.5, 12)) {
       f.mat = M.HAZARD;
       f.alb = 0.8;
     }
