@@ -5,7 +5,7 @@ export const SETTINGS_KEY = 'ka3.settings.v1';
 
 export function defaultSettings(): Settings {
   const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return { v: 1, crt: 0.6, flicker: !reduce, reducedMotion: reduce, volume: 0.7, muted: false, joystick: false, textSpeed: 55 };
+  return { v: 1, crt: 0.6, flicker: !reduce, reducedMotion: reduce, volume: 0.7, muted: false, joystick: false, textSpeed: 55, lite: false, perfChecked: false };
 }
 
 function num(v: unknown, lo: number, hi: number, fallback: number): number {
@@ -28,6 +28,8 @@ export function loadSettings(): Settings {
       muted: typeof raw.muted === 'boolean' ? raw.muted : d.muted,
       joystick: typeof raw.joystick === 'boolean' ? raw.joystick : d.joystick,
       textSpeed: num(raw.textSpeed, 0, 200, d.textSpeed),
+      lite: typeof raw.lite === 'boolean' ? raw.lite : d.lite,
+      perfChecked: typeof raw.perfChecked === 'boolean' ? raw.perfChecked : d.perfChecked,
     };
   } catch {
     return d;

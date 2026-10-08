@@ -39,6 +39,7 @@ export class GameApp {
   private pauseModal: HTMLElement | null = null;
   private lastTick = performance.now();
   private transitioning = false;
+  private perf = { frames: 0, time: 0, done: false };
 
   constructor() {
     this.settings = loadSettings();
@@ -430,7 +431,30 @@ export class GameApp {
     const now = performance.now();
     const dt = Math.min(1, (now - this.lastTick) / 1000);
     this.lastTick = now;
-    if (this.mode === 'play') this.state.data.playTime += dt;
+    if (this.mode !== 'play') return;
+    this.state.data.playTime += dt;
+    this.checkPerformance(dt);
+  }
+
+  /**
+   * Graceful fallback: if the first seconds of play run below 40 fps, switch to the
+   * performance mode once (no CRT overlay, fewer particles). Players can undo it.
+   */
+  private checkPerformance(dt: number): void {
+    const p = this.perf;
+    if (p.done || this.settings.perfChecked || this.settings.lite || document.hidden) return;
+    if (dt > 0.25) return; // ignore hitches (tab switches, loading)
+    p.frames++;
+    p.time += dt;
+    if (p.time < 4) return;
+    p.done = true;
+    const fps = p.frames / p.time;
+    const next = { ...this.settings, perfChecked: true };
+    if (fps < 40) {
+      next.lite = true;
+      this.ui.toast('Leistungsmodus aktiviert – änderbar in den Einstellungen', 4200);
+    }
+    this.applySettings(next, true);
   }
 
   async chapterComplete(): Promise<void> {

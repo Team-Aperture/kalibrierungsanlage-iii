@@ -83,7 +83,7 @@ export function settingsPanel(o: SettingsOpts): Modal {
     });
     rows.push(h('label', { class: 'setting' }, h('span', { text: label }), input, val));
   };
-  const toggle = (label: string, key: 'flicker' | 'reducedMotion' | 'muted' | 'joystick', on = 'AN', off = 'AUS') => {
+  const toggle = (label: string, key: 'flicker' | 'reducedMotion' | 'muted' | 'joystick' | 'lite', on = 'AN', off = 'AUS') => {
     const b = h('button', { class: 'btn toggle', type: 'button', 'aria-pressed': String(s[key]), 'aria-label': label, text: s[key] ? on : off });
     b.addEventListener('click', () => {
       s[key] = !s[key];
@@ -99,6 +99,7 @@ export function settingsPanel(o: SettingsOpts): Modal {
   slider('Lautstärke', 'volume', (v) => `${Math.round(v * 100)} %`);
   toggle('Ton stumm', 'muted');
   toggle('Virtueller Joystick', 'joystick');
+  toggle('Leistungsmodus', 'lite');
   {
     const speeds = [
       { v: 30, t: 'LANGSAM' },

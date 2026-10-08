@@ -793,7 +793,7 @@ function setupOverlays(ctx: ScriptCtx) {
   const lampScreen = toScreen(WZ.lampA.x, WZ.lampA.y, 30);
   dust.setPosition(Math.round(lampScreen.sx), Math.round(lampScreen.sy));
   scene.attach('coneA', dust, 2);
-  if (ctx.settings.reducedMotion) dust.stop();
+  if (ctx.settings.reducedMotion || ctx.settings.lite) dust.stop();
 
   // Sparks from the empty fuse socket.
   const sp = toScreen(PANEL_SPARK.x, PANEL_SPARK.y, PANEL_SPARK.z);

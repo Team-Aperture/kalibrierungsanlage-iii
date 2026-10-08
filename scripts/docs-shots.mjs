@@ -7,6 +7,8 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 async function open(ctxOpts) {
   const ctx = await browser.newContext(ctxOpts);
   const page = await ctx.newPage();
+  // Keep the full CRT look for documentation screenshots.
+  await page.addInitScript(() => localStorage.setItem('ka3.settings.v1', JSON.stringify({ v: 1, crt: 0.6, flicker: true, reducedMotion: false, volume: 0.7, muted: true, joystick: false, textSpeed: 55, lite: false, perfChecked: true })));
   await page.goto(BASE);
   await page.waitForFunction(() => window.__ka3?.mode === 'menu', null, { timeout: 90000 });
   return page;
@@ -30,9 +32,10 @@ const solved = (room, x, y, facing, extra = {}) => `(() => {
   const page = await open({ viewport: { width: 1280, height: 720 } });
   await page.click('#btn-new');
   await page.waitForFunction(() => window.__ka3.state.flag('intro.done') && !window.__ka3.scene.inputLocked, null, { timeout: 30000 });
-  const p = await page.evaluate(() => window.__ka3.debugScreenPoint(48, 70, 0));
-  await page.mouse.click(p.x, p.y);
-  await page.waitForTimeout(4500);
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(500);
+  await page.keyboard.up('KeyW');
+  await page.waitForTimeout(3000);
   await page.evaluate(() => document.querySelector('.hint-line')?.classList.remove('show'));
   await page.screenshot({ path: `${OUT}/wartungszelle-dark.png` });
   // Puzzle mid-solve.

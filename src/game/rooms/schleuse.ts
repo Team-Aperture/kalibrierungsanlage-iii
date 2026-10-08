@@ -652,7 +652,7 @@ function setup(ctx: ScriptCtx) {
       frequency: 140,
       blendMode: Phaser.BlendModes.ADD,
     });
-    if (ctx.settings.reducedMotion) em.frequency = 600;
+    if (ctx.settings.reducedMotion || ctx.settings.lite) em.frequency = 600;
     return em;
   });
   SL.pistons.slice(0, 2).forEach((_x, i) => scene.attach(`piston${i}`, steam[i], 2));

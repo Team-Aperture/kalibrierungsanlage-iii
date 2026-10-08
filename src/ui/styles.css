@@ -104,25 +104,30 @@ button {
   outline: none;
 }
 
-/* CRT layer: scanlines aligned to game pixels, vignette and soft flicker. */
+/* CRT layer: scanlines aligned to game pixels, vignette and soft flicker.
+   Plain alpha blending only (no mix-blend-mode): blend modes force a full
+   recomposite every frame and halve the frame rate on weak GPUs. */
 #crt {
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: var(--crt, 0.6);
   background:
-    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(3, 4, 8, 0.55) 100%),
-    repeating-linear-gradient(to bottom, rgba(4, 6, 12, 0.55) 0, rgba(4, 6, 12, 0.55) calc(var(--px, 3px) * 0.5), rgba(0, 0, 0, 0) calc(var(--px, 3px) * 0.5), rgba(0, 0, 0, 0) var(--px, 3px));
-  mix-blend-mode: multiply;
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(3, 4, 8, 0.6) 100%),
+    repeating-linear-gradient(to bottom, rgba(4, 6, 12, 0.5) 0, rgba(4, 6, 12, 0.5) calc(var(--px, 3px) * 0.5), rgba(0, 0, 0, 0) calc(var(--px, 3px) * 0.5), rgba(0, 0, 0, 0) var(--px, 3px));
 }
 
 #crt::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(120, 140, 170, 0.05);
-  mix-blend-mode: screen;
+  background: rgba(150, 170, 200, 0.035);
   animation: crt-flicker 3.7s steps(1) infinite;
+  will-change: opacity;
+}
+
+body.crt-off #crt {
+  display: none;
 }
 
 body.no-flicker #crt::after {

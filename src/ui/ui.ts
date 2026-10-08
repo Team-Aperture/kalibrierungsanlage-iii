@@ -180,6 +180,8 @@ export class UI {
     document.documentElement.style.setProperty('--crt', String(s.crt));
     document.body.classList.toggle('no-flicker', !s.flicker);
     document.body.classList.toggle('reduce-motion', s.reducedMotion);
+    // No overlay at all when it would be invisible or in performance mode (saves compositing).
+    document.body.classList.toggle('crt-off', s.lite || s.crt <= 0.001);
     this.joystick.setEnabled(this.inGame && s.joystick);
   }
 

@@ -40,4 +40,8 @@ export interface Settings {
   muted: boolean;
   joystick: boolean;
   textSpeed: number; // characters per second, 0 = instant
+  /** Performance mode: no CRT overlay, fewer particles. */
+  lite: boolean;
+  /** Set once the automatic frame-rate check has run on this device. */
+  perfChecked: boolean;
 }
