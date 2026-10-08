@@ -97,6 +97,10 @@ export class UI {
     this.dock.append(this.actions, this.itemStrip);
     this.app.append(this.dock);
     this.dialogue.speed = () => this.settings().textSpeed;
+    // Tapping empty space in the dock (portrait) also advances dialogue.
+    this.dock.addEventListener('click', (e) => {
+      if (this.dialogue.open && !this.hasModal && !(e.target as HTMLElement).closest('button')) this.dialogue.advance();
+    });
     this.dialogue.onOpenChange = () => this.renderActions();
 
     this.joystick = new Joystick(this.stage);

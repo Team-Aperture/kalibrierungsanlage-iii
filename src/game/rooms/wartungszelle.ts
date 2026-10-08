@@ -178,6 +178,7 @@ const props: PropDef[] = [
         }
         return [{ id: 'use', label: 'Matrix öffnen', primary: true, run: (c) => openMatrix(c) }, lookV];
       },
+      accepts: (s, item) => item === 'sicherung' && !s.flag('fuse.inserted'),
       onItem: async (ctx, item) => {
         if (item !== 'sicherung') return false;
         if (ctx.state.flag('fuse.inserted')) return false;

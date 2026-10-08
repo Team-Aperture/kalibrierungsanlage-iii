@@ -62,6 +62,11 @@ export async function hotspot(page: Page, id: string): Promise<{ x: number; y: n
 
 export async function clickObject(page: Page, id: string, opts: { touch?: boolean; right?: boolean } = {}): Promise<void> {
   const p = await hotspot(page, id);
+  const r = await page.evaluate(() => {
+    const b = document.querySelector('#game canvas')!.getBoundingClientRect();
+    return { x0: b.left, y0: b.top, x1: b.right, y1: b.bottom };
+  });
+  expect(p.x >= r.x0 && p.x <= r.x1 && p.y >= r.y0 && p.y <= r.y1, `${id} is on screen`).toBe(true);
   if (opts.touch) await page.touchscreen.tap(p.x, p.y);
   else await page.mouse.click(p.x, p.y, opts.right ? { button: 'right' } : undefined);
 }

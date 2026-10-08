@@ -40,7 +40,7 @@ export class Dialogue {
     this.moreEl.textContent = '▼ WEITER';
     this.el.append(this.speakerEl, this.textEl, this.moreEl);
     parent.append(this.el);
-    this.el.addEventListener('pointerup', (e) => {
+    this.el.addEventListener('click', (e) => {
       e.stopPropagation();
       this.advance();
     });

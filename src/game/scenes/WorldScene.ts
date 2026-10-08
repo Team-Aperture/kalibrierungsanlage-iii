@@ -631,6 +631,12 @@ export class WorldScene extends Phaser.Scene {
     return this.focusId;
   }
 
+  /** Does the focused object accept this item right now? */
+  focusAccepts(item: import('../../state/types').ItemId): boolean {
+    const def = this.focusId ? this.propEntries.get(this.focusId)?.prop?.interact : undefined;
+    return !!def?.accepts?.(this.app.state, item);
+  }
+
   private updateFocus(force = false): void {
     if (this.attract) return;
     // Keep the current focus while an overlay (inventory, dialogue…) is open.
@@ -744,6 +750,7 @@ export class WorldScene extends Phaser.Scene {
       this.updatePlayerLight();
     }
     this.hooks.update?.(dt, time);
+    if (this.attract) this.attractDrift(time);
     this.sortNow();
     this.updateGhost();
     this.veil.update();
@@ -784,6 +791,17 @@ export class WorldScene extends Phaser.Scene {
         void z.enter(this.ctx).finally(() => (this.busy = false));
       } else if (!inside) this.zonesInside.delete(z.id);
     }
+  }
+
+  /** Menu backdrop: a slow, dim drift through the room. */
+  private attractDrift(time: number): void {
+    const c = this.room.camera();
+    const rm = this.app.settings.reducedMotion;
+    const t = rm ? 0 : time / 9000;
+    const cx = c.x + c.w / 2 + Math.sin(t) * Math.min(60, c.w * 0.12);
+    const cy = c.y + c.h / 2 - 10 + Math.sin(t * 0.7) * 14;
+    this.cameras.main.centerOn(Math.round(cx), Math.round(cy));
+    if (this.veil.alpha < 0.3) this.veil.alpha = 0.3;
   }
 
   savePlayer(): void {

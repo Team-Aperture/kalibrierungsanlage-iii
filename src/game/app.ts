@@ -78,8 +78,7 @@ export class GameApp {
     window.addEventListener('pagehide', () => this.persistNow());
     // First gesture anywhere unlocks audio (autoplay policy).
     const unlock = () => this.audio.unlock();
-    window.addEventListener('pointerdown', unlock, { capture: true });
-    window.addEventListener('keydown', unlock, { capture: true });
+    for (const ev of ['pointerdown', 'touchend', 'click', 'keydown']) window.addEventListener(ev, unlock, { capture: true });
   }
 
   // ------------------------------------------------------------------ boot
@@ -340,9 +339,9 @@ export class GameApp {
   }
 
   private beginItemUse(item: ItemId): void {
-    // If something that accepts items is in reach, use it right away; otherwise pick a target.
+    // If the object in reach takes this item, use it right away; otherwise pick a target.
     const focus = this.scene?.focusedProp;
-    if (focus && this.scene) {
+    if (focus && this.scene?.focusAccepts(item)) {
       void this.scene.useItemOn(focus, item);
       return;
     }

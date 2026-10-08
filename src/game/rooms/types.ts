@@ -29,6 +29,8 @@ export interface InteractDef {
   verbs: (ctx: ScriptCtx) => Verb[];
   /** Using an inventory item on this object. Return false if it does not apply. */
   onItem?: (ctx: ScriptCtx, item: ItemId) => Promise<boolean>;
+  /** Whether `onItem` would accept this item right now (for "Benutzen mit …"). */
+  accepts?: (s: GameState, item: ItemId) => boolean;
   /** Hidden objects are not interactive (e.g. not visible yet). */
   enabled?: (s: GameState) => boolean;
 }

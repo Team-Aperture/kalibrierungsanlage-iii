@@ -306,6 +306,7 @@ const props: PropDef[] = [
           lookB,
         ];
       },
+      accepts: (s, item) => item === 'kurbel' && !s.flag('crank.used'),
       onItem: async (ctx, item) => {
         if (item !== 'kurbel' || ctx.state.flag('crank.used')) return false;
         await crankGate(ctx);
@@ -356,6 +357,7 @@ const props: PropDef[] = [
           lookG,
         ];
       },
+      accepts: (s, item) => item === 'kurbel' && !s.flag('crank.used'),
       onItem: async (ctx, item) => {
         if (item !== 'kurbel' || ctx.state.flag('crank.used')) return false;
         if (await ctx.walkTo(134, 18)) await crankGate(ctx);
