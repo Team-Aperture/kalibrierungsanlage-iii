@@ -42,7 +42,20 @@ export function bakeSurface(scene: Phaser.Scene, key: string, surf: Surface, sta
   return addCanvasTexture(scene, key, cv, surf.ox, surf.oy);
 }
 
-/** Lets the browser breathe between heavy bake steps (keeps the loader animated). */
+/**
+ * Lets the browser breathe between heavy bake steps (keeps the loader animated).
+ * Falls back to a timer because animation frames stop in hidden tabs (e.g. when a
+ * phone user switches apps while the game is loading).
+ */
 export function nextFrame(): Promise<void> {
-  return new Promise((r) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(() => r()) : setTimeout(r, 0)));
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(finish);
+    setTimeout(finish, 32);
+  });
 }

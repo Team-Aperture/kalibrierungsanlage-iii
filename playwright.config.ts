@@ -16,15 +16,15 @@ export default defineConfig({
     launchOptions: { executablePath, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
   },
   webServer: {
-    command: 'npm run preview',
+    command: 'npx vite build && npx vite preview --port 4173 --strictPort',
     url: 'http://localhost:4173/kalibrierungsanlage-iii/',
     reuseExistingServer: true,
-    timeout: 60_000,
+    timeout: 120_000,
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } },
-    { name: 'laptop', use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 768 } } },
-    { name: 'phone-portrait', use: { ...devices['Pixel 7'] } },
-    { name: 'phone-landscape', use: { ...devices['Pixel 7 landscape'] } },
+    { name: 'desktop', testMatch: /(desktop|all)\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } },
+    { name: 'laptop', testMatch: /all\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 768 } } },
+    { name: 'phone-portrait', testMatch: /(mobile|all)\.spec\.ts/, use: { ...devices['Pixel 7'] } },
+    { name: 'phone-landscape', testMatch: /(mobile|all)\.spec\.ts/, use: { ...devices['Pixel 7 landscape'] } },
   ],
 });

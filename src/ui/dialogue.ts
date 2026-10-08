@@ -57,6 +57,11 @@ export class Dialogue {
     return this.resolve !== null;
   }
 
+  /** Full text of the current line (also while it is still typing). */
+  get text(): string {
+    return this.open ? this.full : '';
+  }
+
   say(lines: Line[]): Promise<void> {
     // A new conversation replaces a pending one (never stack two).
     if (this.resolve) this.finish();

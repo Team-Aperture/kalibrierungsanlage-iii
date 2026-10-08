@@ -10,7 +10,7 @@ const page = await context.newPage();
 const logs = [];
 page.on('console', (m) => { if (!m.text().includes('[vite]')) logs.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}\n${e.stack}`));
-const base = process.env.URL || 'http://localhost:5173/?e2e=1';
+const base = process.env.URL || 'http://localhost:5173/kalibrierungsanlage-iii/?e2e=1';
 await page.goto(base, { waitUntil: 'load' });
 let n = 0;
 for (const s of steps) {

@@ -14,7 +14,7 @@ function showLoader(): void {
 }
 
 async function boot(): Promise<void> {
-  if (params.has('lab')) {
+  if (import.meta.env.DEV && params.has('lab')) {
     const { runArtLab } = await import('./dev/artlab');
     runArtLab(document.getElementById('ui-root')!);
     return;

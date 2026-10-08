@@ -633,9 +633,11 @@ export class WorldScene extends Phaser.Scene {
 
   private updateFocus(force = false): void {
     if (this.attract) return;
+    // Keep the current focus while an overlay (inventory, dialogue…) is open.
+    if (this.inputLocked && !this.busy && !force) return;
     let best: string | null = null;
     let bestD = Infinity;
-    if (!this.inputLocked || this.busy) {
+    {
       for (const e of this.entries) {
         if (!this.isInteractive(e)) continue;
         const def = e.prop!.interact!;

@@ -86,8 +86,9 @@ export class GameApp {
 
   start(): void {
     const l = this.ui.layout!;
+    const forceCanvas = new URLSearchParams(location.search).get('renderer') === 'canvas';
     this.game = new Phaser.Game({
-      type: Phaser.AUTO,
+      type: forceCanvas ? Phaser.CANVAS : Phaser.AUTO,
       parent: 'game',
       width: l.gameW,
       height: l.gameH,
@@ -524,6 +525,8 @@ export class GameApp {
       focus: s?.focusedProp ?? null,
       light: s?.lightId ?? null,
       layout: this.ui.layout,
+      renderer: this.game?.renderer?.type === Phaser.WEBGL ? 'webgl' : 'canvas',
+      playTime: this.state.data.playTime,
     };
   }
 }
