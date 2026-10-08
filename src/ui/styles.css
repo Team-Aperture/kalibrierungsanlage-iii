@@ -1048,3 +1048,28 @@ body.reduce-motion .btn.attention {
     font-size: 14px;
   }
 }
+
+/* Quick item strip (portrait dock). */
+.item-strip {
+  display: none;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+#app.portrait .item-strip {
+  display: flex;
+}
+
+.item-quick {
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.item-quick canvas {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}

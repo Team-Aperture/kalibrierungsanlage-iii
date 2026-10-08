@@ -6,6 +6,7 @@
 
 import { computeLayout, isPortraitViewport, type DisplayLayout } from '../game/display';
 import { ITEMS } from '../content/items';
+import { iconCanvas } from '../art/icons';
 import type { ItemId, Settings } from '../state/types';
 import { Dialogue } from './dialogue';
 import { button, h, trapFocus } from './dom';
@@ -42,6 +43,10 @@ export class UI {
   private hud: HTMLElement;
   private dock: HTMLElement;
   private actions: HTMLElement;
+  private itemStrip: HTMLElement;
+  /** Items currently carried (for the quick strip). */
+  items: ItemId[] = [];
+  onItemTap: ((item: ItemId) => void) | null = null;
   private statusEl: HTMLElement;
   private invBtn: HTMLButtonElement;
   private menuBtn: HTMLButtonElement;
@@ -88,7 +93,8 @@ export class UI {
     this.dock = h('div', { id: 'dock' });
     this.dialogue = new Dialogue(this.dock);
     this.actions = h('div', { class: 'actions', 'aria-label': 'Aktionen' });
-    this.dock.append(this.actions);
+    this.itemStrip = h('div', { class: 'item-strip', 'aria-label': 'Gegenstände' });
+    this.dock.append(this.actions, this.itemStrip);
     this.app.append(this.dock);
     this.dialogue.speed = () => this.settings().textSpeed;
     this.dialogue.onOpenChange = () => this.renderActions();
@@ -132,7 +138,7 @@ export class UI {
     if (portrait) {
       const topBar = 46;
       const availW = vw - safe.left - safe.right;
-      const maxH = Math.min(vh * 0.56, availW * 1.15);
+      const maxH = Math.min(vh * 0.62 - topBar, availW * 1.35);
       layout = computeLayout({ width: availW, height: maxH }, dpr, true);
       this.stage.style.height = `${Math.ceil(layout.cssH + safe.top + topBar + 4)}px`;
       document.documentElement.style.setProperty('--dock-h', '0px');
@@ -190,6 +196,26 @@ export class UI {
     });
   }
 
+  setItems(items: ItemId[]): void {
+    this.items = items.slice();
+    this.renderItemStrip();
+  }
+
+  private renderItemStrip(): void {
+    const el = this.itemStrip;
+    el.innerHTML = '';
+    for (const id of this.items) {
+      const b = h('button', { class: `btn item-quick ${this.pendingItem === id ? 'mint' : ''}`, type: 'button', 'aria-label': `${ITEMS[id].name} benutzen` });
+      const icon = iconCanvas(id);
+      b.append(icon, h('span', { text: ITEMS[id].name }));
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.onItemTap?.(id);
+      });
+      el.append(b);
+    }
+  }
+
   setInventoryCount(n: number, highlight = false): void {
     const label = this.invBtn.querySelector('span')!;
     label.innerHTML = '';
@@ -209,6 +235,7 @@ export class UI {
   setPendingItem(item: ItemId | null): void {
     this.pendingItem = item;
     this.renderActions();
+    this.renderItemStrip();
   }
 
   private renderActions(): void {

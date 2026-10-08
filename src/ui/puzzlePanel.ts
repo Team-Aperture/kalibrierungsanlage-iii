@@ -12,14 +12,11 @@ import { bayer } from '../art/dither';
 import { drawText } from '../art/font';
 import { C, PALETTE_U32 } from '../art/palette';
 import { describeTile, E, ENERGIEPFAD, evaluate, maskOf, N, rotateTile, S, W, type BoardDef } from '../game/puzzles/energiepfad';
+import { HINTS } from '../content/hints';
 import { button, h } from './dom';
 import type { Modal } from './ui';
 
-export const HINTS: string[] = [
-  'Verfolge das grüne Leuchten: Es zeigt, wie weit der Strom von der QUELLE aus schon kommt. Dreh an dem Segment, an dem es endet.',
-  'Zwei Segmente leiten nur, wenn ihre Öffnungen genau aneinanderstoßen. Das verschweißte Mittelstück lässt sich nicht drehen – und das verbrannte Segment unten darf keinen Strom bekommen. Jede Öffnung, die dorthin weiterleitet, löst einen Kurzschluss aus.',
-  'Führe den Strom über die obere Reihe: von der Quelle nach oben in die linke obere Ecke, dann nach rechts und an der rechten Seite hinunter zum Ziel. Das T-Stück oben in der Mitte muss mit seinem Stiel nach oben zeigen – nicht nach unten ins Mittelstück, das direkt zum verbrannten Segment führt.',
-];
+const HINT_TEXTS = HINTS.energiepfad;
 
 const T = 24;
 const G = 2;
@@ -413,7 +410,7 @@ export function puzzlePanel(o: PuzzleOpts): Modal & { destroy: () => void } {
       hintBox.style.display = 'none';
     } else {
       hintBox.style.display = '';
-      for (let k = 0; k < hints; k++) hintBox.append(h('div', {}, h('span', { class: 'stage', text: `HINWEIS ${k + 1}` }), HINTS[k]));
+      for (let k = 0; k < hints; k++) hintBox.append(h('div', {}, h('span', { class: 'stage', text: `HINWEIS ${k + 1}` }), HINT_TEXTS[k]));
     }
     hintBtn.querySelector('span')!.textContent = hints >= 3 ? 'Hinweise 3/3' : `Hinweis ${hints + 1}/3`;
     hintBtn.disabled = hints >= 3;

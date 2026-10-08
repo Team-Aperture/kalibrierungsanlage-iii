@@ -36,7 +36,7 @@ export function computeLayout(area: Area, dpr: number, portrait: boolean): Displ
   const minW = portrait ? 256 : 352;
   const minH = portrait ? 230 : 198;
   const maxW = portrait ? 320 : 512;
-  const maxH = portrait ? 300 : 288;
+  const maxH = portrait ? 360 : 288;
   const scale = Math.max(1, Math.floor(Math.min(devW / minW, devH / minH)));
   const gameW = Math.max(160, Math.min(maxW, Math.floor(devW / scale)));
   const gameH = Math.max(120, Math.min(maxH, Math.floor(devH / scale)));

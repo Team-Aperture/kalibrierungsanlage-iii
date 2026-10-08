@@ -56,6 +56,8 @@ export interface Zone {
   rect: Rect;
   active: (s: GameState) => boolean;
   enter: (ctx: ScriptCtx) => Promise<void>;
+  /** Fire even if the player is already standing inside when the room loads (resumed saves). */
+  triggerOnSpawn?: boolean;
 }
 
 export interface RoomHooks {

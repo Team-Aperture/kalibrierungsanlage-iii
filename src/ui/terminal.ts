@@ -1,7 +1,7 @@
 /**
  * Close-up reader for terminals (green CRT) and paper documents (logbook).
  * Lines are typed out one by one; tapping or pressing a key shows everything.
- * Line prefixes: "!" warning (amber), "x" error (red), "~" dim.
+ * Line prefixes: "!" warning (amber), "x" error (red), "~" dim, " " normal.
  */
 
 import { button, h } from './dom';
@@ -38,6 +38,7 @@ export function reader(o: ReaderOpts): Modal & { done: Promise<void> } {
     if (line.startsWith('!')) (cls = 'warn'), (text = line.slice(1));
     else if (line.startsWith('x')) (cls = 'err'), (text = line.slice(1));
     else if (line.startsWith('~')) (cls = 'dim'), (text = line.slice(1));
+    else if (line.startsWith(' ')) text = line.slice(1);
     return h('div', { class: cls, text: text || ' ' });
   };
   const done = (async () => {

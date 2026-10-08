@@ -81,6 +81,12 @@ export function validateSave(raw: unknown): SaveData | null {
  */
 export function normalize(d: SaveData): SaveData {
   const f = d.flags;
+  // Carried items imply they were picked up (prevents duplicates from the world).
+  if (d.inventory.includes('sicherung')) f['fuse.taken'] = true;
+  if (d.inventory.includes('kurbel')) {
+    f['crank.taken'] = true;
+    f['locker.open'] = true;
+  }
   if (d.puzzles.energiepfad.solved) {
     f['fuse.inserted'] = true;
     d.doors.schleuse01 = 'OPEN';

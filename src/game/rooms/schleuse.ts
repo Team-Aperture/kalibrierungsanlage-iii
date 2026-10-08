@@ -554,6 +554,7 @@ export const schleuse: RoomDef = {
       rect: { x0: 236, y0: 0, x1: SL.L, y1: SL.Wd },
       active: (s) => gateOpen(s) && !signalDone(s),
       enter: (ctx) => signalEvent(ctx),
+      triggerOnSpawn: true,
     },
   ],
   bake: async (scene, progress) => {

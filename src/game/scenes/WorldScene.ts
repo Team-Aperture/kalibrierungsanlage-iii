@@ -249,8 +249,8 @@ export class WorldScene extends Phaser.Scene {
         this.busy = false;
       }
     }
-    // Do not immediately re-trigger the zone we arrived in.
-    for (const z of this.room.zones ?? []) if (this.inRect(z.rect)) this.zonesInside.add(z.id);
+    // Do not immediately re-trigger the zone we arrived in (unless it asks for it).
+    for (const z of this.room.zones ?? []) if (!z.triggerOnSpawn && this.inRect(z.rect)) this.zonesInside.add(z.id);
   }
 
   private firstLight(): string {

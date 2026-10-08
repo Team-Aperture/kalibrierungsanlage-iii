@@ -58,8 +58,16 @@ export class GameApp {
     this.input.on('action', (a) => this.onAction(a));
     this.applySettings(this.settings, false);
     this.state.on('change', ({ kind }) => {
-      if (kind === 'item') this.ui.setInventoryCount(this.state.data.inventory.length, true);
+      if (kind === 'item' || kind === 'room') {
+        this.ui.setInventoryCount(this.state.data.inventory.length, kind === 'item');
+        this.ui.setItems(this.state.data.inventory);
+      }
     });
+    this.ui.onItemTap = (item) => {
+      if (this.mode !== 'play' || this.ui.blocking) return;
+      if (this.ui.pendingItem === item) this.ui.setPendingItem(null);
+      else this.beginItemUse(item);
+    };
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this.persistNow();
@@ -123,6 +131,7 @@ export class GameApp {
     this.scene = scene;
     this.ui.setStatus(scene.room.status(this.state));
     this.ui.setInventoryCount(this.state.data.inventory.length);
+    this.ui.setItems(this.state.data.inventory);
   }
 
   sceneGone(scene: WorldScene): void {
