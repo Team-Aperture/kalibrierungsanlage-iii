@@ -56,7 +56,7 @@ export interface WzArt {
 let cached: WzArt | null = null;
 
 export async function bakeWartungszelle(scene: Phaser.Scene, progress: (p: number) => void): Promise<WzArt> {
-  const lamps = { A: WZ.lampA, B: WZ.lampB, C: WZ.lampC } as const;
+  const lamp = WZ.lampA;
   const jobs: Array<{ key: string; build: () => Surface; lights?: readonly string[] }> = [
     { key: WZK.bg, build: () => A.buildBackground() },
     { key: WZK.terminal, build: () => A.buildTerminal() },
@@ -78,11 +78,10 @@ export async function bakeWartungszelle(scene: Phaser.Scene, progress: (p: numbe
   };
   for (let k = 1; k <= 8; k++) doorParams[`l${k}`] = [k / 8, 0];
   for (const v of DOOR_VARIANTS) jobs.push({ key: WZK.door(v), build: () => A.buildDoor(doorParams[v][0], doorParams[v][1]) });
-  for (const id of ['A', 'B', 'C'] as const) {
-    for (const on of [false, true]) {
-      const p = lamps[id];
-      jobs.push({ key: WZK.lamp(id, on), build: () => A.buildHangingLamp(p.x, p.y, p.z, on) });
-    }
+  for (const on of [false, true]) {
+    jobs.push({ key: WZK.lamp('A', on), build: () => A.buildHangingLamp(lamp.x, lamp.y, lamp.z, on) });
+    jobs.push({ key: WZK.lamp('B', on), build: () => A.buildWallLamp(WZ.lampB, 'x', on) });
+    jobs.push({ key: WZK.lamp('C', on), build: () => A.buildWallLamp(WZ.lampC, 'y', on) });
   }
 
   const surfaces = new Map<string, Surface>();
@@ -149,12 +148,9 @@ export async function bakeWartungszelle(scene: Phaser.Scene, progress: (p: numbe
     );
   }
 
-  // Light cones under the hanging lamps.
-  for (const id of ['A', 'B', 'C'] as const) {
-    const p = lamps[id];
-    const cone = lightCone(p.x, p.y, p.z - 3, 34, [C.S3, C.S5, C.S7], 0.62);
-    addCanvasTexture(scene, WZK.cone(id), cone.cv, cone.ox, cone.oy);
-  }
+  // Light cone under the hanging lamp.
+  const cone = lightCone(lamp.x, lamp.y, lamp.z - 3, 36, [C.S3, C.S5, C.S7], 0.62);
+  addCanvasTexture(scene, WZK.cone('A'), cone.cv, cone.ox, cone.oy);
 
   const panelSurface = surfaces.get(WZK.panelEmpty)!;
   const grid = A.PANEL_GRID;

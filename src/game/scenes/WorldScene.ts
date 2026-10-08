@@ -417,6 +417,11 @@ export class WorldScene extends Phaser.Scene {
   private setupPointer(): void {
     this.input.mouse?.disableContextMenu();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      // Tapping the game view advances open dialogue (one-handed play on phones).
+      if (this.app.ui.dialogue.open && !this.app.ui.hasModal) {
+        this.app.ui.dialogue.advance();
+        return;
+      }
       if (this.inputLocked) return;
       this.app.audio.unlock();
       const touch = p.wasTouch;

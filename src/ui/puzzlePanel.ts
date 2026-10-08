@@ -214,16 +214,19 @@ function drawBoard(b: Buf, def: BoardDef, st: DrawState, reduced: boolean): void
   rect(b, BX - 2, BY - 2, T * 3 + G * 2 + 4, T * 3 + G * 2 + 4, C.VOID);
   // Source terminal (left, middle row) and destination (right).
   const midY = BY + T + G + T / 2;
-  const term = (x: number, lit: boolean, color: number, label: string) => {
+  // Pictograms: lightning bolt (source) and bulkhead door (destination).
+  const BOLT = ['..##', '.##.', '####', '.##.', '##..'];
+  const DOOR = ['####', '#..#', '#.##', '#..#', '####'];
+  const term = (x: number, lit: boolean, color: number, icon: string[]) => {
     bevelBox(b, x, midY - 9, 12, 18, C.S5, C.S7, C.S2, C.S1);
     rect(b, x + 3, midY - 6, 6, 4, lit ? color : C.S2);
-    if (lit) {
-      px(b, x + 4, midY - 6, C.WHITE);
-    }
-    drawText(b.d, b.w, b.h, label, x + 4, midY + 1, C.S8);
+    if (lit) px(b, x + 4, midY - 6, C.WHITE);
+    icon.forEach((row, j) => {
+      for (let k = 0; k < row.length; k++) if (row[k] === '#') px(b, x + 4 + k, midY + 1 + j, lit ? C.S9 : C.S7);
+    });
   };
-  term(3, true, C.AMBER, 'Q');
-  term(CW - 15, st.solved, C.MINT, 'Z');
+  term(3, true, C.AMBER, BOLT);
+  term(CW - 15, st.solved, C.MINT, DOOR);
   // Stubs from terminals into the board.
   const stub = (x0: number, x1: number, powered: boolean) => {
     for (let x = x0; x <= x1; x++) {

@@ -28,10 +28,11 @@ export const WZ = {
   /** Wall columns (solid, baked into the background). */
   columnsLeft: [[0, 66, 0, 4, 72, 72]] as Box3[],
   columnsRight: [[62, 0, 0, 68, 4, 72], [110, 0, 0, 116, 4, 72]] as Box3[],
-  /** Hanging lamps (fixture centre, bottom of the shade). */
-  lampA: { x: 52, y: 98, z: 84 },
-  lampB: { x: 112, y: 34, z: 84 },
-  lampC: { x: 128, y: 104, z: 84 },
+  /** Hanging lamp (fixture centre, bottom of the shade). */
+  lampA: { x: 64, y: 136, z: 90 },
+  /** Wall floodlights (powered only): right wall above the crates, left wall above the fan. */
+  lampB: [176, 0, 60, 188, 5, 65] as Box3,
+  lampC: [0, 76, 60, 5, 88, 65] as Box3,
   grate: [40, 132, 56, 148] as const,
   spawn: { x: 54, y: 118 },
 } as const;

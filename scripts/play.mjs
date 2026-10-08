@@ -15,6 +15,11 @@ await page.goto(base, { waitUntil: 'load' });
 let n = 0;
 for (const s of steps) {
   if (s.wait) await page.waitForTimeout(s.wait);
+  if (s.until) await page.waitForFunction(s.until, null, { timeout: s.timeout || 20000 });
+  if (s.hot) { const p = await page.evaluate((id) => window.__ka3.debugHotspot(id), s.hot); await page.mouse.click(p.x, p.y, s.button ? { button: s.button } : undefined); }
+  if (s.hotTap) { const p = await page.evaluate((id) => window.__ka3.debugHotspot(id), s.hotTap); await page.touchscreen.tap(p.x, p.y); }
+  if (s.world) { const p = await page.evaluate(([x, y]) => window.__ka3.debugScreenPoint(x, y, 0), s.world); await page.mouse.click(p.x, p.y); }
+  if (s.hold) { await page.keyboard.down(s.hold[0]); await page.waitForTimeout(s.hold[1]); await page.keyboard.up(s.hold[0]); }
   if (s.click) await page.click(s.click);
   if (s.key) await page.keyboard.press(s.key);
   if (s.down) await page.keyboard.down(s.down);

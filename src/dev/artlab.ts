@@ -39,8 +39,8 @@ export function runArtLab(root: HTMLElement): void {
     { surf: WZA.buildCrates(), box: toBox(WZ.crates) },
     { surf: WZA.buildFan(0), box: toBox(WZ.fan) },
     { surf: WZA.buildHangingLamp(WZ.lampA.x, WZ.lampA.y, WZ.lampA.z, true), box: { x0: WZ.lampA.x - 6, y0: WZ.lampA.y - 6, z0: WZ.lampA.z - 2, x1: WZ.lampA.x + 6, y1: WZ.lampA.y + 6, z1: 160 } },
-    { surf: WZA.buildHangingLamp(WZ.lampB.x, WZ.lampB.y, WZ.lampB.z, false), box: { x0: WZ.lampB.x - 6, y0: WZ.lampB.y - 6, z0: WZ.lampB.z - 2, x1: WZ.lampB.x + 6, y1: WZ.lampB.y + 6, z1: 160 } },
-    { surf: WZA.buildHangingLamp(WZ.lampC.x, WZ.lampC.y, WZ.lampC.z, false), box: { x0: WZ.lampC.x - 6, y0: WZ.lampC.y - 6, z0: WZ.lampC.z - 2, x1: WZ.lampC.x + 6, y1: WZ.lampC.y + 6, z1: 160 } },
+    { surf: WZA.buildWallLamp(WZ.lampB, 'x', true), box: toBox(WZ.lampB) },
+    { surf: WZA.buildWallLamp(WZ.lampC, 'y', true), box: toBox(WZ.lampC) },
   ];
   // Simple O(n²) insertion order respecting the iso comparator.
   props.sort((a, b) => compareBoxes(a.box, b.box));

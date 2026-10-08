@@ -304,8 +304,7 @@ const props: PropDef[] = [
       name: 'Transformator TR-1',
       points: [
         { x: 172, y: 126 },
-        { x: 148, y: 100 },
-        { x: 172, y: 76 },
+        { x: 150, y: 126 },
       ],
       hotspot: { x: 172, y: 101, z: 64 },
       reach: 12,
@@ -395,7 +394,7 @@ const props: PropDef[] = [
     interact: {
       name: 'Hängelampe',
       points: [{ x: WZ.lampA.x, y: WZ.lampA.y + 8 }],
-      pick: { x0: WZ.lampA.x - 6, y0: WZ.lampA.y - 6, z0: WZ.lampA.z - 3, x1: WZ.lampA.x + 6, y1: WZ.lampA.y + 6, z1: WZ.lampA.z + 10 },
+      pick: { x0: WZ.lampA.x - 5, y0: WZ.lampA.y - 5, z0: WZ.lampA.z - 3, x1: WZ.lampA.x + 5, y1: WZ.lampA.y + 5, z1: WZ.lampA.z + 6 },
       hotspot: { x: WZ.lampA.x, y: WZ.lampA.y, z: WZ.lampA.z + 10 },
       reach: 14,
       verbs: () => [
@@ -412,8 +411,8 @@ const props: PropDef[] = [
       ],
     },
   },
-  { id: 'lampB', box: { x0: WZ.lampB.x - 6, y0: WZ.lampB.y - 6, z0: WZ.lampB.z - 3, x1: WZ.lampB.x + 6, y1: WZ.lampB.y + 6, z1: 150 }, texture: (s) => WZK.lamp('B', powered(s)) },
-  { id: 'lampC', box: { x0: WZ.lampC.x - 6, y0: WZ.lampC.y - 6, z0: WZ.lampC.z - 3, x1: WZ.lampC.x + 6, y1: WZ.lampC.y + 6, z1: 150 }, texture: (s) => WZK.lamp('C', powered(s)) },
+  { id: 'lampB', box: box(WZ.lampB), texture: (s) => WZK.lamp('B', powered(s)) },
+  { id: 'lampC', box: box(WZ.lampC), texture: (s) => WZK.lamp('C', powered(s)) },
   {
     id: 'crates',
     box: box(WZ.crates),
@@ -442,8 +441,6 @@ const props: PropDef[] = [
   },
   // Volumetric light cones (decor, depth-sorted like thin columns).
   { id: 'coneA', box: { x0: WZ.lampA.x - 1, y0: WZ.lampA.y - 1, z0: 0, x1: WZ.lampA.x + 1, y1: WZ.lampA.y + 1, z1: WZ.lampA.z }, texture: null },
-  { id: 'coneB', box: { x0: WZ.lampB.x - 1, y0: WZ.lampB.y - 1, z0: 0, x1: WZ.lampB.x + 1, y1: WZ.lampB.y + 1, z1: WZ.lampB.z }, texture: null },
-  { id: 'coneC', box: { x0: WZ.lampC.x - 1, y0: WZ.lampC.y - 1, z0: 0, x1: WZ.lampC.x + 1, y1: WZ.lampC.y + 1, z1: WZ.lampC.z }, texture: null },
 ];
 
 // ---------------------------------------------------------------------------
@@ -779,13 +776,9 @@ function setupOverlays(ctx: ScriptCtx) {
   const rotor = scene.attach('machine', scene.addOverlay(WZK.rotor(0), machInfo.ox, machInfo.oy), 1);
   const machLamps = scene.attach('machine', scene.addOverlay(WZK.machineLamps, machInfo.ox, machInfo.oy), 2);
 
-  // Light cones + dust.
-  const cones: Record<'A' | 'B' | 'C', Phaser.GameObjects.Image> = {} as never;
-  for (const id of ['A', 'B', 'C'] as const) {
-    const info = bakedInfo(WZK.cone(id));
-    const img = scene.addOverlay(info.key, info.ox, info.oy).setBlendMode(Phaser.BlendModes.ADD);
-    cones[id] = scene.attach(`cone${id}`, img, 1);
-  }
+  // Light cone + dust.
+  const coneInfo = bakedInfo(WZK.cone('A'));
+  const coneA = scene.attach('coneA', scene.addOverlay(coneInfo.key, coneInfo.ox, coneInfo.oy).setBlendMode(Phaser.BlendModes.ADD), 1);
   const dust = scene.add.particles(0, 0, 'px.peach', {
     x: { min: -22, max: 22 },
     y: { min: -60, max: 0 },
@@ -826,8 +819,6 @@ function setupOverlays(ctx: ScriptCtx) {
     const p = powered(s);
     rotor.setVisible(p);
     machLamps.setVisible(p);
-    cones.B.setVisible(p);
-    cones.C.setVisible(p);
     doorLampImg.setTexture(WZK.doorLamp(doorLamp(s)));
   };
   refresh();
@@ -841,7 +832,7 @@ function setupOverlays(ctx: ScriptCtx) {
         lastLight = scene.lightId;
         const on = lastLight !== 'darkOff';
         scene.setPropBase('lampA', WZK.lamp('A', on));
-        cones.A.setVisible(on);
+        coneA.setVisible(on);
         if (lastLight === 'darkOff') ctx.sfx('tink', { volume: 0.15 });
       }
       // Fan turns even without power.

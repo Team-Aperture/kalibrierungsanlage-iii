@@ -1154,6 +1154,28 @@ export function buildHangingLamp(lx: number, ly: number, lz: number, on: boolean
   return s;
 }
 
+/** Wall-mounted floodlight; `axis` is the wall it hangs on ('x' = right wall y=0, 'y' = left wall x=0). */
+export function buildWallLamp(b: Box3, axis: 'x' | 'y', on: boolean): Surface {
+  const s = surfaceFor(b, [[b[0], b[1], b[2] - 4, b[3], b[4], b[5]]]);
+  const [x0, y0, z0, x1, y1, z1] = b;
+  s.box(x0, y0, z0, x1, y1, z1, (f) => {
+    darkPaint(f, 0.42, 131);
+    const front = (axis === 'x' && f.tag === FACE.LEFT) || (axis === 'y' && f.tag === FACE.RIGHT);
+    if (front && f.u > 1 && f.u < f.w - 1 && f.v > 1 && f.v < f.h - 1) {
+      f.mat = M.PAPER;
+      f.alb = 0.35;
+      if (on) f.emi = (Math.floor(f.u) + Math.floor(f.v)) % 3 === 0 ? C.PEACH : C.WHITE;
+      return true;
+    }
+    bevel(f, 0.25);
+    return true;
+  });
+  // Bracket down to the wall.
+  if (axis === 'x') s.box((x0 + x1) / 2 - 1, 0, z0 - 4, (x0 + x1) / 2 + 1, 2, z0, (f) => (darkPaint(f, 0.4, 132), true));
+  else s.box(0, (y0 + y1) / 2 - 1, z0 - 4, 2, (y0 + y1) / 2 + 1, z0, (f) => (darkPaint(f, 0.4, 132), true));
+  return s;
+}
+
 // ---------------------------------------------------------------------------
 // Lighting
 // ---------------------------------------------------------------------------
@@ -1189,13 +1211,27 @@ const lampLight = (p: { x: number; y: number; z: number }, intensity: number): L
   x: p.x,
   y: p.y,
   z: p.z - 3,
-  radius: 165,
+  radius: 170,
   intensity,
   hue: 'neutral',
   spot: spot(28, 62),
   shadows: true,
   wrap: 0.15,
 });
+const flood = (x: number, y: number, z: number, dx: number, dy: number, dz: number, intensity: number): Light => {
+  const l = Math.hypot(dx, dy, dz);
+  return {
+    x,
+    y,
+    z,
+    radius: 190,
+    intensity,
+    hue: 'neutral',
+    spot: { dx: dx / l, dy: dy / l, dz: dz / l, inner: Math.cos((30 * Math.PI) / 180), outer: Math.cos((72 * Math.PI) / 180) },
+    shadows: true,
+    wrap: 0.2,
+  };
+};
 const fill = (x: number, y: number, z: number, i: number, hue: Light['hue'] = 'cold'): Light => ({ x, y, z, radius: 140, intensity: i, hue, wrap: 0.6 });
 
 export const LIGHTING: Record<string, LightingState> = {
@@ -1213,17 +1249,18 @@ export const LIGHTING: Record<string, LightingState> = {
   },
   lit: {
     id: 'lit',
-    ambient: 0.3,
+    ambient: 0.34,
     occluders: OCC,
     lights: [
       termLight,
       doorLight('green', 0.9),
-      lampLight(WZ.lampA, 1.5),
-      lampLight(WZ.lampB, 1.5),
-      lampLight(WZ.lampC, 1.5),
-      { x: 96, y: 84, z: 26, radius: 64, intensity: 0.75, hue: 'amber', wrap: 0.5 },
-      { x: 142, y: -20, z: 40, radius: 46, intensity: 0.7, hue: 'cold', wrap: 0.4 },
-      fill(170, 170, 70, 0.3),
+      lampLight(WZ.lampA, 1.55),
+      flood(182, 8, 60, -0.35, 1, -0.9, 1.75),
+      flood(8, 82, 60, 1, 0.1, -0.85, 1.6),
+      { x: 96, y: 84, z: 26, radius: 70, intensity: 0.95, hue: 'amber', wrap: 0.5 },
+      { x: 142, y: -20, z: 40, radius: 50, intensity: 0.9, hue: 'cold', wrap: 0.4 },
+      { x: 172, y: 101, z: 66, radius: 40, intensity: 0.45, hue: 'amber', wrap: 0.5 },
+      fill(210, 190, 80, 0.5),
     ],
   },
 };
