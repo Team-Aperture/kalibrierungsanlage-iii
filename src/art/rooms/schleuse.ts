@@ -168,7 +168,11 @@ const leftWallShader: Shader = (f) => {
     if (Math.abs(z - MURAL_LAMP.z) < 1.2 && Math.abs(y - MURAL_LAMP.y) < 5) {
       f.mat = M.STEEL;
       f.alb = 0.5;
-      if (z < MURAL_LAMP.z) f.emi = Math.abs(y - MURAL_LAMP.y) < 3.5 ? C.PEACH : C.AMBER;
+      // Lit by its own light (bright in LIGHTING.hall), so it goes dark in the blackout.
+      if (z < MURAL_LAMP.z) {
+        f.mat = M.AMBER_FLAT;
+        f.alb = Math.abs(y - MURAL_LAMP.y) < 3.5 ? 1 : 0.8;
+      }
       return true;
     }
     if (Math.abs(z - 64) < 4) {
@@ -598,7 +602,7 @@ export function buildCrates2(): Surface {
     darkPaint(f, 0.46, 481);
     if (f.u < 1.2 || f.u > f.w - 1.2 || f.v < 1.2 || f.v > f.h - 1.2) f.alb += 0.15;
     // Team_Aperture sticker on the front, the KA mark moved to the side.
-    if (f.tag === FACE.LEFT && emblemDecal(f, { variant: 'badge', u0: 1.5, vTop: 16.5, wear: 0.1, seed: 482 })) return true;
+    if (f.tag === FACE.LEFT && emblemDecal(f, { variant: 'badge', u0: 1, vTop: 16.5, wear: 0.1, seed: 482 })) return true;
     if (f.tag === FACE.RIGHT && stencil(f, 'KA', 3.5, 12)) {
       f.mat = M.HAZARD;
       f.alb = 0.8;

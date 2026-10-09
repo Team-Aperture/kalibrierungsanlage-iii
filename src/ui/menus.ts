@@ -2,7 +2,8 @@
 
 import { PALETTE_HEX } from '../art/palette';
 import type { Settings } from '../state/types';
-import { bannerMark, emblemMark } from './brand';
+import { emblemMark } from './brand';
+import { bannerMark } from './brandBanner';
 import { button, h } from './dom';
 import type { Modal } from './ui';
 
@@ -53,11 +54,12 @@ export function mainMenu(o: MainMenuOpts): Modal {
   );
 
   const banner = bannerMark({ cls: 'hero-banner' });
+  const logoWrap = h('div', { class: 'hero-logo-wrap' }, h('span', { class: 'hero-light l', 'aria-hidden': 'true' }), banner, h('span', { class: 'hero-light r', 'aria-hidden': 'true' }), h('span', { class: 'hero-scanbar', 'aria-hidden': 'true' }));
   const hero = h(
     'section',
     { class: 'hero' },
     h('h1', { class: 'sr-only', text: 'Die Kalibrierungsanlage III – Die Übergabe. Kapitel 0: Nullsignal' }),
-    h('div', { class: 'hero-logo-wrap' }, h('span', { class: 'hero-light l', 'aria-hidden': 'true' }), banner, h('span', { class: 'hero-light r', 'aria-hidden': 'true' }), h('span', { class: 'hero-scanbar', 'aria-hidden': 'true' })),
+    logoWrap,
     h('div', { class: 'subtitle', text: 'KAPITEL 0 — NULLSIGNAL' }),
     o.saveInfo ? h('div', { class: 'meta', text: o.saveInfo }) : null,
   );
@@ -102,6 +104,8 @@ export function mainMenu(o: MainMenuOpts): Modal {
     const s = crispScale(Math.min(maxW, maxH, 4));
     cv.style.width = `${cv.width * s}px`;
     cv.style.height = `${cv.height * s}px`;
+    // The scan bar sweeps with a transform; it needs the wrap width as a length.
+    logoWrap.style.setProperty('--scan-w', `${logoWrap.offsetWidth}px`);
   };
   fit();
   requestAnimationFrame(fit);

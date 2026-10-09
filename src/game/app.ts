@@ -128,10 +128,15 @@ export class GameApp {
       if (res.reason === 'corrupt') this.saveNotice = 'Der gespeicherte Spielstand war beschädigt und wurde ignoriert.';
       if (res.reason === 'incompatible') this.saveNotice = 'Der gespeicherte Spielstand stammt aus einer inkompatiblen Version.';
     }
-    if (this.bootScreen) void this.bootScreen.finish();
-    else document.getElementById('loader')?.remove();
+    const boot = this.bootScreen;
     this.bootScreen = null;
-    this.showMainMenu();
+    if (boot) {
+      // The menu (and its focus) appears only once the boot overlay starts to fade.
+      void boot.finish(() => this.showMainMenu());
+    } else {
+      document.getElementById('loader')?.remove();
+      this.showMainMenu();
+    }
   }
 
   sceneReady(scene: WorldScene): void {

@@ -601,16 +601,17 @@ export const schleuse: RoomDef = {
   setup: (ctx) => setup(ctx),
 };
 
-function t07Raster(mode: typeof t07.mode, t: number): Uint8Array {
+function t07Raster(mode: typeof t07.mode, t: number, calm = false): Uint8Array {
   const w = T07_SCREEN.w;
   const h = T07_SCREEN.h;
   const r = new Uint8Array(w * h).fill(255);
   if (mode === 'off') return r;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) r[y * w + x] = y % 2 === 0 ? C.G0 : C.G1;
   if (mode === 'wake') {
-    // The terminal wakes on its own: static, then the emblem rolls in.
+    // The terminal wakes on its own: static, then the emblem rolls in (calm: just the emblem).
     const p = t07.t < 0 ? 0 : (t - t07.t) / 650;
-    if (p < 0.25) {
+    if (calm) drawScreenEmblem(r, w, h, { ms: t, still: true, clear: C.G0 });
+    else if (p < 0.25) {
       for (let k = 0; k < 40; k++) {
         const x = Math.floor(Math.random() * w);
         const y = Math.floor(Math.random() * h);
@@ -700,10 +701,11 @@ function setup(ctx: ScriptCtx) {
     update: (dt: number, time: number) => {
       // T-07 screen.
       if (t07.mode === 'wake' && t07.t < 0) t07.t = time;
-      const key = `${t07.mode}:${t07.mode === 'signal' ? Math.floor(time / 60) : t07.mode === 'wake' ? Math.floor(time / 45) : 0}`;
+      const calm = ctx.settings.reducedMotion || !ctx.settings.flicker;
+      const key = `${t07.mode}:${t07.mode === 'signal' ? Math.floor(time / 60) : t07.mode === 'wake' && !calm ? Math.floor(time / 45) : 0}`;
       if (key !== lastKey) {
         lastKey = key;
-        art.screen.renderInto(screenTex.getContext(), t07Raster(t07.mode, time));
+        art.screen.renderInto(screenTex.getContext(), t07Raster(t07.mode, time, calm));
         screenTex.refresh();
       }
       // Fan keeps turning, even when everything else stops.

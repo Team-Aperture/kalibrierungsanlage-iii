@@ -2,7 +2,6 @@ import '@fontsource/share-tech-mono/400.css';
 import '@fontsource/space-mono/700.css';
 import '@fontsource/vt323/400.css';
 import './ui/styles.css';
-import { installFavicon } from './art/brand';
 import { loadSave } from './state/save';
 import { loadSettings } from './state/settings';
 import { showBootScreen } from './ui/boot';
@@ -18,9 +17,9 @@ async function boot(): Promise<void> {
   }
   // Start fetching the engine first; the boot screen renders while it loads.
   const appModule = import('./game/app');
-  installFavicon();
   const settings = loadSettings();
   setBrandMotion(settings.reducedMotion);
+  document.body.classList.toggle('reduce-motion', settings.reducedMotion);
   const save = loadSave();
   const bootScreen = showBootScreen({ reduced: settings.reducedMotion, signal: save.ok && save.data.chapterComplete });
   const { GameApp } = await appModule;

@@ -5,11 +5,12 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { emblemPixels } = await import(path.join(root, 'src/art/brand/emblem.ts'));
-const { bannerPixels } = await import(path.join(root, 'src/art/brand/banner.ts'));
+const load = (rel) => import(pathToFileURL(path.join(root, rel)).href);
+const { emblemPixels } = await load('src/art/brand/emblem.ts');
+const { bannerPixels } = await load('src/art/brand/banner.ts');
 
 const paletteSrc = readFileSync(path.join(root, 'src/art/palette.ts'), 'utf8');
 const HEX = [...paletteSrc.matchAll(/'(#[0-9a-f]{6})'/g)].map((m) => m[1]).slice(0, 28);

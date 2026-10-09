@@ -1052,7 +1052,7 @@ export function buildCrates(): Surface {
   const s = surfaceFor(WZ.crates);
   const crate = (seed: number, label: string | null, sticker = false): Shader => (f) => {
     // Team_Aperture sticker on the side of the spare-parts crate.
-    if (sticker && f.tag === FACE.RIGHT && emblemDecal(f, { variant: 'badge', u0: 5.5, vTop: 15.5, wear: 0.08, seed })) return true;
+    if (sticker && f.tag === FACE.RIGHT && emblemDecal(f, { variant: 'badge', u0: 5, vTop: 15.5, wear: 0.08, seed })) return true;
     f.mat = M.WOOD;
     f.alb = 0.48 + (fbm(f.u * 0.5, f.v * 0.08, seed, 2) - 0.5) * 0.14;
     const edge = f.u < 1.5 || f.u > f.w - 1.5 || f.v < 1.5 || f.v > f.h - 1.5;

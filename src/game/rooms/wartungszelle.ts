@@ -12,7 +12,7 @@ import { WZ, type Box3 } from '../../content/rooms/wartungszelle.layout';
 import { bakedInfo } from '../../art/bake';
 import { C } from '../../art/palette';
 import { drawText } from '../../art/font';
-import { drawScreenEmblem } from '../../art/brand/screens';
+import { drawScreenEmblem, screenEmblemState, type ScreenEmblemOpts } from '../../art/brand/screens';
 import { DOOR_LAMP, LIGHTING, PANEL_SPARK, TALLY_COUNT, TERMINAL_SCREEN } from '../../art/rooms/wartungszelle';
 import { bakeWartungszelle, WZK, wzArt } from '../../art/rooms/wartungszelleBake';
 import { evaluate, ENERGIEPFAD } from '../puzzles/energiepfad';
@@ -604,19 +604,29 @@ const screen: { mode: 'off' | 'logo' | 'boot' | 'unknown' | 'idle' | 'ok'; t: nu
 const OK_CYCLE = 9000;
 const OK_LOGO_AT = 5600;
 
-function screenRaster(mode: typeof screen.mode, t: number): Uint8Array {
+/**
+ * The emblem phases of T-01: the manufacturer splash in the intro and, once powered, a
+ * re-synced emblem every OK_CYCLE. `calm` (reduced motion or no flicker) shows the
+ * settled emblem without the CRT boot flash and without the light pulse.
+ */
+function screenEmblemOpts(mode: typeof screen.mode, t: number, calm: boolean): ScreenEmblemOpts | null {
+  let boot: number;
+  if (mode === 'logo') boot = screen.t < 0 ? 0 : (t - screen.t) / 700;
+  else if (mode === 'ok' && t % OK_CYCLE >= OK_LOGO_AT) boot = ((t % OK_CYCLE) - OK_LOGO_AT) / 550;
+  else return null;
+  return calm ? { ms: t, still: true, clear: C.G0 } : { ms: t, boot, clear: C.G0 };
+}
+
+function screenRaster(mode: typeof screen.mode, t: number, calm = false): Uint8Array {
   const w = TERMINAL_SCREEN.w;
   const hh = TERMINAL_SCREEN.h;
   const r = new Uint8Array(w * hh).fill(255);
   if (mode === 'off') return r;
   for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) r[y * w + x] = y % 2 === 0 ? C.G0 : C.G1;
   const frame = Math.floor(t / 220);
-  if (mode === 'logo') {
-    drawScreenEmblem(r, w, hh, { ms: t, boot: screen.t < 0 ? 0 : (t - screen.t) / 700, clear: C.G0 });
-    return r;
-  }
-  if (mode === 'ok' && t % OK_CYCLE >= OK_LOGO_AT) {
-    drawScreenEmblem(r, w, hh, { ms: t, boot: ((t % OK_CYCLE) - OK_LOGO_AT) / 550, clear: C.G0 });
+  const emblemOpts = screenEmblemOpts(mode, t, calm);
+  if (emblemOpts) {
+    drawScreenEmblem(r, w, hh, emblemOpts);
     return r;
   }
   if (mode === 'boot') {
@@ -762,11 +772,12 @@ function setupOverlays(ctx: ScriptCtx) {
   const drawScreen = (time: number) => {
     const mode = screen.mode === 'idle' && powered(s) ? 'ok' : screen.mode;
     if (mode === 'logo' && screen.t < 0) screen.t = time;
-    const fine = mode === 'logo' || (mode === 'ok' && time % OK_CYCLE >= OK_LOGO_AT - 50);
-    const key = `${mode}:${Math.floor(time / (fine ? 45 : 220))}`;
+    const calm = ctx.settings.reducedMotion || !ctx.settings.flicker;
+    const emblemOpts = screenEmblemOpts(mode, time, calm);
+    const key = emblemOpts ? `${mode}:${screenEmblemState(emblemOpts)}` : `${mode}:${Math.floor(time / 220)}`;
     if (key === lastScreen) return;
     lastScreen = key;
-    art.screen.renderInto(screenTex.getContext(), screenRaster(mode, time));
+    art.screen.renderInto(screenTex.getContext(), screenRaster(mode, time, calm));
     screenTex.refresh();
   };
 

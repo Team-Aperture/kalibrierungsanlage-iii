@@ -36,8 +36,12 @@ function fullLines(signal: boolean): Array<[number, string, Kind]> {
 const SHORT: Array<[number, string, Kind]> = [[0, 'KA-III // SITZUNG WIRD FORTGESETZT', 'dim']];
 
 export interface BootScreen {
-  /** Resolves once the boot overlay has faded; the menu may be shown underneath before that. */
-  finish(): Promise<void>;
+  /**
+   * Plays out the remaining lines, then calls `reveal` the moment the overlay starts to
+   * fade (so whatever it shows underneath only becomes interactive once visible).
+   * Resolves when the overlay is gone.
+   */
+  finish(reveal?: () => void): Promise<void>;
 }
 
 function sessionSeen(): boolean {
@@ -91,7 +95,7 @@ export function showBootScreen(o: { reduced: boolean; signal: boolean }): BootSc
   for (let i = 0; i < lines.length; i++) timers.push(window.setTimeout(addLine, lines[i][0]));
 
   return {
-    finish: async () => {
+    finish: async (reveal) => {
       // Remaining lines flush quickly, the emblem gets its minimum stage time.
       for (const t of timers) clearTimeout(t);
       while (shown < lines.length) {
@@ -106,6 +110,7 @@ export function showBootScreen(o: { reduced: boolean; signal: boolean }): BootSc
       const wait = minMs - (performance.now() - t0);
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
       el.classList.add('done');
+      reveal?.();
       await new Promise((r) => setTimeout(r, o.reduced ? 0 : 470));
       el.remove();
     },

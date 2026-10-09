@@ -15,6 +15,16 @@ export interface ScreenEmblemOpts {
   clear?: number;
 }
 
+/**
+ * Identifies the picture drawScreenEmblem would draw for these options, so callers can
+ * redraw (and re-upload) a monitor texture only when it actually changes.
+ */
+export function screenEmblemState(o: ScreenEmblemOpts): string {
+  if (o.boot !== undefined && o.boot < 1) return `b${Math.max(0, Math.floor(o.boot * 24))}`;
+  const p = brandPulse(o.ms, o.still);
+  return `p${p.red}:${p.green}:${p.spark}`;
+}
+
 /** Draws the badge emblem into a monitor raster of size w × h. */
 export function drawScreenEmblem(r: Uint8Array, w: number, h: number, o: ScreenEmblemOpts): void {
   if (o.clear !== undefined) r.fill(o.clear);

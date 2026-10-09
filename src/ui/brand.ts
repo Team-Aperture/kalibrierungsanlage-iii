@@ -5,7 +5,7 @@
  * logos costs a handful of small canvas uploads per second.
  */
 
-import { banner, brandPulse, emblem, emblemBoot, paint, type EmblemVariant, type IndexedPixels } from '../art/brand';
+import { brandPulse, emblem, emblemBoot, paint, type EmblemVariant, type IndexedPixels } from '../art/brand';
 import { h } from './dom';
 
 export interface MarkOpts {
@@ -30,6 +30,10 @@ export function setBrandMotion(reducedMotion: boolean): void {
   reduced = reducedMotion;
 }
 
+export function brandMotionReduced(): boolean {
+  return reduced;
+}
+
 interface Live {
   cv: HTMLCanvasElement;
   render: (now: number) => IndexedPixels;
@@ -44,8 +48,9 @@ let raf = 0;
 function tick(now: number): void {
   for (const m of live) {
     if (!m.cv.isConnected) {
-      // Drop marks that were removed from the page (or never attached within 5 s).
-      if (m.seen || now - m.created > 5000) live.delete(m);
+      // Drop marks once they leave the page; marks never attached are given up after a
+      // minute (long enough for slow boots, short enough not to pile up).
+      if (m.seen || now - m.created > 60000) live.delete(m);
       continue;
     }
     m.seen = true;
@@ -63,7 +68,7 @@ function track(m: Live): void {
   if (!raf) raf = requestAnimationFrame(tick);
 }
 
-function mount(kind: 'emblem' | 'banner', first: IndexedPixels, render: (t: number, bootP: number) => IndexedPixels, o: MarkOpts): HTMLElement {
+export function mount(kind: 'emblem' | 'banner', first: IndexedPixels, render: (t: number, bootP: number) => IndexedPixels, o: MarkOpts): HTMLElement {
   const cv = paint(first);
   cv.className = 'brand-canvas';
   if (o.scale) {
@@ -105,9 +110,4 @@ export function emblemMark(variant: EmblemVariant, o: MarkOpts = {}): HTMLElemen
     (t, bootP) => (bootP < 1 ? emblemBoot(variant, bootP) : emblem(variant, brandPulse(t, reduced || o.animate === false))),
     { ...o, cls: `${o.cls ?? ''} v-${variant}` },
   );
-}
-
-export function bannerMark(o: MarkOpts = {}): HTMLElement {
-  const first = banner(brandPulse(0, reduced));
-  return mount('banner', first, (t) => banner(brandPulse(t + 1300, reduced || o.animate === false)), o);
 }

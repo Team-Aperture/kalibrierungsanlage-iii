@@ -13,7 +13,11 @@ import { emblem, type EmblemVariant } from './index';
 
 export interface DecalOpts {
   variant: EmblemVariant;
-  /** Face coordinates of the decal's top-left pixel. */
+  /**
+   * Face coordinates of the decal's top-left pixel. Use whole numbers for u0: fragments
+   * sample face space at half-unit offsets, and a half-unit u0 would put every sample
+   * exactly on a texel boundary (dropping and doubling columns).
+   */
   u0: number;
   vTop: number;
   /** 0…1: share of paint worn away (wall shows through). */
@@ -43,8 +47,9 @@ function still(v: EmblemVariant) {
 /** Paints the emblem pixel under the fragment. Returns true if the fragment was painted. */
 export function emblemDecal(f: Frag, o: DecalOpts): boolean {
   const px = still(o.variant);
-  let cx = Math.floor(f.u - o.u0);
-  const cy = Math.floor(o.vTop - f.v);
+  // The epsilon keeps samples that land on a texel edge through float error on one side.
+  let cx = Math.floor(f.u - o.u0 + 1e-4);
+  const cy = Math.floor(o.vTop - f.v + 1e-4);
   if (cx < 0 || cy < 0 || cx >= px.w || cy >= px.h) return false;
   if (o.flip) cx = px.w - 1 - cx;
   const c = px.data[cy * px.w + cx];

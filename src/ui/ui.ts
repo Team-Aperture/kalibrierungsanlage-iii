@@ -83,6 +83,8 @@ export class UI {
     this.statusEl = h('div', { class: 'status', role: 'status' });
     this.statusBadge = emblemMark('badge', { cls: 'hud-badge', label: '' });
     this.statusBadge.setAttribute('aria-hidden', 'true');
+    // Attached from the start, so its animation is never given up as "never shown".
+    this.statusEl.append(this.statusBadge);
     this.markerBtn = button('◇', () => this.handlers.markers(), { key: 'Tab', aria: 'Interaktive Objekte hervorheben' });
     this.invBtn = button('Inventar', () => this.handlers.inventory(), { key: 'I', aria: 'Inventar öffnen' });
     this.hud = h('div', { id: 'hud' }, h('div', { class: 'hud-top' }, this.menuBtn, this.statusEl, this.markerBtn, this.invBtn));

@@ -783,14 +783,17 @@ body.reduce-motion .btn.attention {
   top: 0;
   bottom: 0;
   width: 72px;
-  left: -90px;
+  left: 0;
   background: linear-gradient(90deg, transparent 0 20%, rgba(82, 211, 156, 0.08) 20% 40%, rgba(82, 211, 156, 0.2) 40% 60%, rgba(82, 211, 156, 0.08) 60% 80%, transparent 80%);
+  transform: translateX(-90px);
+  will-change: transform;
   animation: scanbar 9s ease-in-out 4s infinite;
 }
 
+/* --scan-w is the banner wrap width, set by the title screen's fit(). */
 @keyframes scanbar {
-  0%, 60% { left: -90px; }
-  90%, 100% { left: calc(100% + 20px); }
+  0%, 60% { transform: translateX(-90px); }
+  90%, 100% { transform: translateX(calc(var(--scan-w, 1200px) + 20px)); }
 }
 
 .title-screen .subtitle {
@@ -972,6 +975,18 @@ body.reduce-motion .btn.attention {
   .title-screen .foot {
     display: none;
   }
+  /* Landscape phones: the studio mark keeps to its corner, clear of the buttons. */
+  .title-screen .studio .studio-text {
+    display: none;
+  }
+  .title-screen .studio {
+    bottom: calc(var(--safe-bottom) + 8px);
+    right: calc(var(--safe-right) + 10px);
+  }
+  .studio .studio-emblem canvas {
+    width: 40px;
+    height: 40px;
+  }
   .title-menu {
     gap: 8px;
   }
@@ -1005,6 +1020,35 @@ body.reduce-motion .btn.attention {
     text-align: left;
     order: 1;
   }
+}
+
+/* Reduced motion: the title and boot screens stand still (no reveals, pulses, sweeps or blinking). */
+body.reduce-motion .title-screen .hero,
+body.reduce-motion .title-menu,
+body.reduce-motion .title-screen .foot,
+body.reduce-motion .title-screen .studio,
+body.reduce-motion .hero-logo-wrap::before,
+body.reduce-motion .hero-light,
+body.reduce-motion .hero-scanbar::before,
+body.reduce-motion .blink,
+body.reduce-motion .boot-cursor {
+  animation: none;
+}
+
+body.reduce-motion .hero-light {
+  clip-path: none;
+  opacity: 0.8;
+}
+
+body.reduce-motion .hero-scanbar {
+  display: none;
+}
+
+body.reduce-motion .boot-line,
+body.reduce-motion .idle-comment,
+body.reduce-motion .loader,
+body.reduce-motion .ka-btn {
+  transition: none;
 }
 
 /* About panel header with the emblem. */
@@ -1353,7 +1397,10 @@ body.reduce-motion .btn.attention {
   text-align: center;
   font-family: var(--font-title);
   color: var(--text-hi);
+  max-height: 100%;
+  overflow-y: auto;
 }
+
 
 .ending .line1 {
   font-family: var(--font-crt);
@@ -1395,7 +1442,8 @@ body.reduce-motion .btn.attention {
 }
 
 .ending .line2 .brand-mark canvas {
-  width: min(576px, 92vw);
+  /* At most ~34 % of the height (banner aspect 320:102), so short landscape phones fit. */
+  width: min(576px, 92vw, 106vh);
   height: auto;
 }
 
@@ -1413,9 +1461,38 @@ body.reduce-motion .btn.attention {
   transition: opacity 1s;
 }
 
+.ending .credit.show {
+  opacity: 1;
+}
+
 .ending .credit .brand-mark canvas {
   width: 48px;
   height: 48px;
+}
+
+@media (max-height: 520px) {
+  .ending .line1 {
+    font-size: 22px;
+  }
+  .ending .line2 .brand-mark canvas {
+    width: min(576px, 92vw, 80vh);
+  }
+  .ending .line2 {
+    margin-top: 10px;
+  }
+  .ending .stats {
+    margin-top: 8px;
+  }
+  .ending .credit {
+    margin-top: 8px;
+  }
+  .ending .credit .brand-mark canvas {
+    width: 24px;
+    height: 24px;
+  }
+  .ending .button-row {
+    margin-top: 10px;
+  }
 }
 
 /* Loader = boot screen (KA-II style BIOS with the Team_Aperture splash) */

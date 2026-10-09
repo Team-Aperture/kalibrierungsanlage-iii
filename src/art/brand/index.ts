@@ -4,11 +4,12 @@
  * One source of truth for every logo in the game, all generated as palette-indexed
  * pixel art (no image files):
  *
- *   emblem 'full'    96 px  Team_Aperture emblem, title screen and splash
- *   emblem 'simple'  48 px  menu marks, wall plates, signage
- *   emblem 'screen'  32 px  CRT / monitor version (boot reveal, scanlines)
+ *   emblem 'full'    95 px  Team_Aperture emblem, boot splash
+ *   emblem 'simple'  47 px  menu marks, the hall mural, ending credit
+ *   emblem 'screen'  31 px  CRT / monitor version (boot reveal, scanlines)
  *   emblem 'badge'   15 px  favicon, HUD, stickers, tiny in-world monitors
- *   banner                  the KA-III game logo ("DIE ÜBERGABE" banner)
+ *   banner                  the KA-III game logo ("DIE ÜBERGABE" banner), see
+ *                           ui/brandBanner.ts (kept out of the boot bundle)
  *
  * Animation is driven by `brandPulse(ms)`: the red and green halves breathe in turns
  * and the high-five sparks briefly whenever the two meet in the middle. Values are
@@ -16,9 +17,8 @@
  */
 
 import { PALETTE_U32 } from '../palette';
-import { bannerPixels } from './banner';
 import { emblemPixels, type EmblemVariant } from './emblem';
-import { bootFrame, type IndexedPixels } from './fx';
+import { blank, bootFrame, type IndexedPixels } from './fx';
 
 export type { EmblemVariant, IndexedPixels };
 export { bootFrame, scanlines, stepped, blit, blank } from './fx';
@@ -55,9 +55,12 @@ export function brandPulse(ms: number, still = false): BrandPulse {
   return { red: q(red * 0.85), green: q(green * 0.85), spark: q(spark) };
 }
 
+/** Raster sizes per variant (checked against emblemPixels by the unit tests). */
+export const EMBLEM_SIZE: Record<EmblemVariant, number> = { full: 95, simple: 47, screen: 31, badge: 15 };
+
 const cache = new Map<string, IndexedPixels>();
 
-function cached(key: string, make: () => IndexedPixels): IndexedPixels {
+export function cached(key: string, make: () => IndexedPixels): IndexedPixels {
   let px = cache.get(key);
   if (!px) {
     px = make();
@@ -74,16 +77,16 @@ export function emblem(variant: EmblemVariant, p: BrandPulse = STILL): IndexedPi
   return cached(`e:${variant}:${r}:${g}:${s}`, () => emblemPixels(variant, { red: r, green: g, spark: s }));
 }
 
-export function banner(p: BrandPulse = STILL): IndexedPixels {
-  const r = q(p.red);
-  const g = q(p.green);
-  return cached(`b:${r}:${g}`, () => bannerPixels({ red: r, green: g }));
-}
+/** Quantises a pulse channel to the cache levels. */
+export const quantise = q;
 
 /** Emblem during a CRT boot: `p` 0…1 (see bootFrame), quantised to 24 frames. */
 export function emblemBoot(variant: EmblemVariant, p: number, pulse: BrandPulse = STILL): IndexedPixels {
   if (p >= 1) return emblem(variant, pulse);
   const f = Math.max(0, Math.floor(p * 24));
+  // A dark screen needs no emblem yet: the (first-call) geometry build of 'full' is
+  // deferred until the reveal actually starts, after the boot screen has painted.
+  if (f === 0) return cached(`eb:${variant}:0`, () => blank(EMBLEM_SIZE[variant], EMBLEM_SIZE[variant]));
   return cached(`eb:${variant}:${f}`, () => bootFrame(emblem(variant, STILL), f / 24, 3));
 }
 
@@ -101,33 +104,4 @@ export function paint(px: IndexedPixels, cv?: HTMLCanvasElement): HTMLCanvasElem
   }
   ctx.putImageData(img, 0, 0);
   return c;
-}
-
-/** Pixels → PNG data URL at an integer scale (favicons, previews). */
-export function dataUrl(px: IndexedPixels, scale = 1, pad = 0): string {
-  const src = paint(px);
-  const cv = document.createElement('canvas');
-  cv.width = (px.w + pad * 2) * scale;
-  cv.height = (px.h + pad * 2) * scale;
-  const ctx = cv.getContext('2d')!;
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(src, pad * scale, pad * scale, px.w * scale, px.h * scale);
-  return cv.toDataURL('image/png');
-}
-
-/** Replaces the static favicon with the badge emblem rendered at 32 px. */
-export function installFavicon(): void {
-  try {
-    const href = dataUrl(emblem('badge'), 2, 0.5);
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.append(link);
-    }
-    link.type = 'image/png';
-    link.href = href;
-  } catch {
-    // Keep the static SVG favicon.
-  }
 }

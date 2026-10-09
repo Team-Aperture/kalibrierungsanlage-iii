@@ -1,6 +1,7 @@
 /** Chapter completion screen. */
 
-import { bannerMark, emblemMark } from './brand';
+import { emblemMark } from './brand';
+import { bannerMark } from './brandBanner';
 import { button, h } from './dom';
 import type { Modal } from './ui';
 
