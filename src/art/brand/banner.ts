@@ -13,6 +13,7 @@
  * `red` / `green` (0..1) pulse the red and green lights: every light pixel carries a
  * fractional ramp level, so intermediate values grow the glow from the cores outward
  * and 1 steps every light exactly one ramp level up. No new colours are introduced.
+ * The static art is drawn once; a call only re-resolves the light pixels.
  */
 
 export interface BannerOpts { red?: number; green?: number }
@@ -25,13 +26,15 @@ const W = BANNER_W;
 const H = BANNER_H;
 const T = 255;
 
-type Mask = (x: number, y: number) => boolean;
+/** A pixel mask; the masks built here also carry their bitmap (`r`) for fast rasterising. */
+type Mask = ((x: number, y: number) => boolean) & { r?: { x: number; y: number; w: number; h: number; bits: Uint8Array } };
 /** kind: 0 face, 1 lit edge, -1 shadow edge, 2 neutral (diagonal) edge; d = 1 outermost. */
 type Shade = (kind: number, d: number, x: number, y: number) => number;
 
+/** Rest-state palette index per pixel (what get() sees). */
 let buf = new Uint8Array(W * H);
-let redAmt = 0;
-let grnAmt = 0;
+/** Light code per pixel (0 = not a light), see red()/grn(). */
+let codes = new Uint16Array(W * H);
 
 // Key light from the upper left (mostly from above).
 const LX = -0.55;
@@ -41,7 +44,14 @@ const LY = -0.83;
 
 function set(x: number, y: number, c: number): void {
   if (x < 0 || y < 0 || x >= W || y >= H) return;
-  buf[y * W + x] = c;
+  const i = y * W + x;
+  if (c >= LIGHT) {
+    buf[i] = lightColour(c, 0, 0);
+    codes[i] = c;
+  } else {
+    buf[i] = c;
+    codes[i] = 0;
+  }
 }
 
 function get(x: number, y: number): number {
@@ -61,36 +71,66 @@ function vline(x: number, y0: number, y1: number, c: number): void {
   for (let y = y0; y <= y1; y++) set(x, y, c);
 }
 
-// Light ramps. A light pixel is given as a fractional level; the pulse adds to it.
+// Light ramps. A light pixel is drawn as a code carrying its ramp and fractional level
+// (tenths); bannerPixels() resolves it against the pulse, so the static art is built once.
 const RED = [0, 11, 17, 18, 19, 20, 27];
 const GRN = [0, 21, 22, 23, 24, 25, 27];
+const LIGHT = 1000;
+const GREEN_BIT = 500;
 
 function red(level: number): number {
-  return RED[Math.max(0, Math.min(RED.length - 1, Math.floor(level + redAmt + 1e-6)))];
+  return LIGHT + Math.max(0, Math.min(99, Math.round(level * 10)));
 }
 
 function grn(level: number): number {
-  return GRN[Math.max(0, Math.min(GRN.length - 1, Math.floor(level + grnAmt + 1e-6)))];
+  return LIGHT + GREEN_BIT + Math.max(0, Math.min(99, Math.round(level * 10)));
+}
+
+function lightColour(code: number, r: number, g: number): number {
+  const isG = code >= LIGHT + GREEN_BIT;
+  const lv = (code - LIGHT - (isG ? GREEN_BIT : 0)) / 10 + (isG ? g : r);
+  const ramp = isG ? GRN : RED;
+  return ramp[Math.max(0, Math.min(ramp.length - 1, Math.floor(lv + 1e-6)))];
 }
 
 // ---------------------------------------------------------------- shapes
 
-/** Polygon mask; vertices on pixel edges, pixel centres are tested. */
+/** Polygon mask; vertices on pixel edges, pixel centres are tested (scanline-rasterised once). */
 function poly(pts: number[]): Mask {
+  const [bx0, by0, bx1, by1] = bbox(pts);
+  const w = bx1 - bx0 + 1;
+  const h = by1 - by0 + 1;
+  const bits = new Uint8Array(w * h);
   const n = pts.length / 2;
-  return (x, y) => {
-    const px = x + 0.5;
+  const xs: number[] = [];
+  for (let y = by0; y <= by1; y++) {
     const py = y + 0.5;
-    let inside = false;
+    xs.length = 0;
     for (let i = 0, j = n - 1; i < n; j = i++) {
       const xi = pts[2 * i];
       const yi = pts[2 * i + 1];
       const xj = pts[2 * j];
       const yj = pts[2 * j + 1];
-      if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+      if (yi > py !== yj > py) xs.push(((xj - xi) * (py - yi)) / (yj - yi) + xi);
     }
-    return inside;
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const xa = Math.max(bx0, Math.ceil(xs[k] - 0.5));
+      const xb = Math.min(bx1, Math.ceil(xs[k + 1] - 0.5) - 1);
+      for (let x = xa; x <= xb; x++) bits[(y - by0) * w + x - bx0] = 1;
+    }
+  }
+  return bitmapMask(bx0, by0, w, h, bits);
+}
+
+function bitmapMask(ox: number, oy: number, w: number, h: number, bits: Uint8Array): Mask {
+  const f: Mask = (x, y) => {
+    const lx = x - ox;
+    const ly = y - oy;
+    return lx >= 0 && ly >= 0 && lx < w && ly < h && bits[ly * w + lx] === 1;
   };
+  f.r = { x: ox, y: oy, w, h, bits };
+  return f;
 }
 
 function bbox(pts: number[]): [number, number, number, number] {
@@ -112,29 +152,78 @@ function bbox(pts: number[]): [number, number, number, number] {
  * an outward normal estimated from the outside pixels around it; edges facing the key
  * light are lit, edges facing away are shaded. `inset` flips it for recesses.
  */
+const WEIGHTS: Float64Array[] = [];
+
+/** Inverse squared distance weights for a (2R+1)² neighbourhood (centre 0). */
+function weights(R: number): Float64Array {
+  if (WEIGHTS[R]) return WEIGHTS[R];
+  const ww = 2 * R + 1;
+  const t = new Float64Array(ww * ww);
+  for (let oy = -R; oy <= R; oy++) for (let ox = -R; ox <= R; ox++) if (ox || oy) t[(oy + R) * ww + ox + R] = 1 / (ox * ox + oy * oy);
+  return (WEIGHTS[R] = t);
+}
+
 function bevel(m: Mask, box: [number, number, number, number], depth: number, shade: Shade, inset = false, thr = 0.3): void {
   const R = depth + 1;
   const [x0, y0, x1, y1] = box;
+  // Rasterise the mask once (padded by R), then a chessboard distance transform.
+  const bx = x0 - R;
+  const by = y0 - R;
+  const bw = x1 - x0 + 1 + 2 * R;
+  const bh = y1 - y0 + 1 + 2 * R;
+  const mk = new Uint8Array(bw * bh);
+  const r = m.r;
+  if (r) {
+    for (let ry = 0; ry < r.h; ry++) {
+      const y = r.y + ry - by;
+      if (y < 0 || y >= bh) continue;
+      for (let rx = 0; rx < r.w; rx++) {
+        const x = r.x + rx - bx;
+        if (x >= 0 && x < bw && r.bits[ry * r.w + rx] === 1) mk[y * bw + x] = 1;
+      }
+    }
+  } else for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) mk[y * bw + x] = m(bx + x, by + y) ? 1 : 0;
+  const wt = weights(R);
+  const ww = 2 * R + 1;
+  // The padding ring is outside, so inside pixels never index past the edges.
+  const dist = new Uint8Array(bw * bh);
+  for (let i = bw + 1; i < bw * (bh - 1) - 1; i++) {
+    if (!mk[i]) continue;
+    let d = dist[i - 1];
+    if (dist[i - bw - 1] < d) d = dist[i - bw - 1];
+    if (dist[i - bw] < d) d = dist[i - bw];
+    if (dist[i - bw + 1] < d) d = dist[i - bw + 1];
+    dist[i] = d + 1 > R ? R : d + 1;
+  }
+  for (let i = bw * (bh - 1) - 2; i > bw; i--) {
+    if (!mk[i]) continue;
+    let d = dist[i + 1];
+    if (dist[i + bw + 1] < d) d = dist[i + bw + 1];
+    if (dist[i + bw] < d) d = dist[i + bw];
+    if (dist[i + bw - 1] < d) d = dist[i + bw - 1];
+    if (d + 1 < dist[i]) dist[i] = d + 1;
+  }
   for (let y = y0; y <= y1; y++) {
     for (let x = x0; x <= x1; x++) {
-      if (!m(x, y)) continue;
-      let d = 99;
-      let nx = 0;
-      let ny = 0;
-      for (let oy = -R; oy <= R; oy++) {
-        for (let ox = -R; ox <= R; ox++) {
-          if (!ox && !oy) continue;
-          if (m(x + ox, y + oy)) continue;
-          const cd = Math.max(Math.abs(ox), Math.abs(oy));
-          if (cd < d) d = cd;
-          const w = 1 / (ox * ox + oy * oy);
-          nx += ox * w;
-          ny += oy * w;
-        }
-      }
+      const lx = x - bx;
+      const ly = y - by;
+      if (!mk[ly * bw + lx]) continue;
+      const d = dist[ly * bw + lx];
       if (d > depth) {
         set(x, y, shade(0, 0, x, y));
         continue;
+      }
+      let nx = 0;
+      let ny = 0;
+      for (let oy = -R; oy <= R; oy++) {
+        const row = (ly + oy) * bw + lx;
+        const wrow = (oy + R) * ww + R;
+        for (let ox = -R; ox <= R; ox++) {
+          if (mk[row + ox]) continue;
+          const w = wt[wrow + ox];
+          nx += ox * w;
+          ny += oy * w;
+        }
       }
       const len = Math.hypot(nx, ny) || 1;
       let lit = (nx * LX + ny * LY) / len;
@@ -160,16 +249,12 @@ function ring(m: Mask, box: [number, number, number, number], c: (x: number, y: 
 }
 
 function grid(w: number, h: number, ox: number, oy: number, bits: Uint8Array): Mask {
-  return (x, y) => {
-    const lx = x - ox;
-    const ly = y - oy;
-    return lx >= 0 && ly >= 0 && lx < w && ly < h && bits[ly * w + lx] === 1;
-  };
+  return bitmapMask(ox, oy, w, h, bits);
 }
 
 // ---------------------------------------------------------------- fonts
 
-/** Game font (3×5), the glyphs used on the banner; I and '.' are narrowed here. */
+/** Game font (3×5) with 5-wide M/V/W and a 4-wide N so they never read as H/U/n; I and '.' narrowed. */
 const SMALL: Record<string, string> = {
   A: '.#.|#.#|###|#.#|#.#',
   B: '##.|#.#|##.|#.#|##.',
@@ -180,17 +265,18 @@ const SMALL: Record<string, string> = {
   I: '#|#|#|#|#',
   K: '#.#|#.#|##.|#.#|#.#',
   L: '#..|#..|#..|#..|###',
-  M: '#.#|###|###|#.#|#.#',
-  N: '##.|#.#|#.#|#.#|#.#',
+  M: '#...#|##.##|#.#.#|#...#|#...#',
+  N: '#..#|##.#|#.##|#..#|#..#',
   O: '.#.|#.#|#.#|#.#|.#.',
   P: '##.|#.#|##.|#..|#..',
   R: '##.|#.#|##.|#.#|#.#',
   S: '.##|#..|.#.|..#|##.',
   T: '###|.#.|.#.|.#.|.#.',
   U: '#.#|#.#|#.#|#.#|###',
-  V: '#.#|#.#|#.#|#.#|.#.',
+  V: '#...#|#...#|.#.#.|.#.#.|..#..',
+  W: '#...#|#...#|#.#.#|##.##|#...#',
   Z: '###|..#|.#.|#..|###',
-  Ä: '#.#|.#.|#.#|###|#.#',
+  Ä: '.#.|#.#|###|#.#|#.#',
   '.': '.|.|.|.|#',
   ' ': '.|.|.|.|.',
 };
@@ -208,6 +294,13 @@ const MID: Record<string, string> = {
   C: '.####|##...|##...|##...|##...|##...|.####',
   '7': '#####|...##|..##.|..##.|.##..|.##..|.##..',
   ' ': '..|..|..|..|..|..|..',
+};
+
+/** "DIE" above the title: bold 7-row capitals with 2 px stems. */
+const DIEF: Record<string, string> = {
+  D: '#####.|##..##|##..##|##..##|##..##|##..##|#####.',
+  I: '##|##|##|##|##|##|##',
+  E: '#####|##...|##...|####.|##...|##...|#####',
 };
 
 /** Title font: bold condensed capitals, 16 rows, 3 px stems, chamfered corners. */
@@ -269,6 +362,8 @@ const SMALL_G = new Map<string, Glyph>();
 for (const k of Object.keys(SMALL)) SMALL_G.set(k, parse(SMALL[k].split('|')));
 const MID_G = new Map<string, Glyph>();
 for (const k of Object.keys(MID)) MID_G.set(k, parse(MID[k].split('|')));
+const DIE_G = new Map<string, Glyph>();
+for (const k of Object.keys(DIEF)) DIE_G.set(k, parse(DIEF[k].split('|')));
 const BIG_G = new Map<string, Glyph>();
 for (const k of Object.keys(BIG)) BIG_G.set(k, parse(BIG[k]));
 
@@ -296,6 +391,16 @@ function layout(s: string, font: Map<string, Glyph>, track: number, space: numbe
 function smallText(s: string, x: number, y: number, c: number, track = 1, space = 3): number {
   const g = layout(s, SMALL_G, track, space);
   for (let ly = 0; ly < g.h; ly++) for (let lx = 0; lx < g.w; lx++) if (g.bits[ly * g.w + lx]) set(x + lx, y + ly, c);
+  // Umlaut dots two rows above the capital.
+  let cx = x;
+  for (const ch of s) {
+    const gl = SMALL_G.get(ch);
+    if (ch === 'Ä' || ch === 'Ö' || ch === 'Ü') {
+      set(cx, y - 2, c);
+      set(cx + (gl ? gl.w : 3) - 1, y - 2, c);
+    }
+    cx += (gl ? gl.w : space) + track;
+  }
   return g.w;
 }
 
@@ -366,7 +471,7 @@ function body(): void {
   bevel(m, bbox(BODY), 3, steel([9, 10, 8], [1, 3, 4], [5, 7, 6], () => 6));
   // Dark gunmetal inner field, recessed.
   const mi = poly(INNER);
-  bevel(mi, bbox(INNER), 1, steel([1], [7], [3], (_x, y) => (y < 60 ? 3 : 3)), true);
+  bevel(mi, bbox(INNER), 1, steel([1], [7], [3], () => 3), true);
 }
 
 function topTab(): void {
@@ -428,10 +533,10 @@ function lamp(x: number, y: number, w: number, isRed: boolean): void {
 }
 
 function taglinePlate(): void {
-  const pts = [96, 12, 291, 12, 299, 20, 96, 20];
-  bevel(poly(pts), bbox(pts), 1, steel([10], [5], [8], (_x, y) => (y < 14 ? 10 : y < 18 ? 9 : 8)));
-  lamp(100, 13, 11, true);
-  lamp(272, 13, 11, false);
+  const pts = [96, 12, 291, 12, 300, 21, 96, 21];
+  bevel(poly(pts), bbox(pts), 1, steel([10], [5], [8], (_x, y) => (y < 15 ? 10 : y < 18 ? 9 : 8)));
+  lamp(100, 14, 11, true);
+  lamp(272, 14, 11, false);
   const s = 'TESTEN. MESSEN. VERBESSERN.';
   const w = smallWidth(s, 2, 4);
   const x0 = 191 - (w >> 1);
@@ -446,10 +551,17 @@ function well(): void {
   const m = poly(WELL);
   bevel(m, bbox(WELL), 1, steel([6], [0], [1], (_x, y) => (y < 26 ? 1 : y < 56 ? 2 : 3)), true);
   // Separator under "DIE": steel lines with a green triangle marker in the middle.
-  hline(120, 184, 29, 5);
-  hline(120, 184, 30, 2);
-  hline(200, 300, 29, 5);
-  hline(200, 300, 30, 2);
+  // Glowing light-strip lines either side of the marker (they pulse with the green lights).
+  const strip = (x0: number, x1: number): void => {
+    for (let x = x0; x <= x1; x++) {
+      const e = Math.min(x - x0, x1 - x);
+      set(x, 28, 1);
+      set(x, 29, grn(e < 1 ? 1.5 : e < 8 ? 2.4 : 3.1));
+      set(x, 30, e < 8 ? 2 : grn(1.4));
+    }
+  };
+  strip(120, 183);
+  strip(201, 276);
   // Down-pointing triangle in a steel V.
   for (let r = 0; r < 8; r++) {
     const half = 7 - r;
@@ -466,29 +578,55 @@ function well(): void {
   for (let r = 0; r < 3; r++) for (let dx = -r; dx <= r; dx++) set(192 + dx, 57 + r, grn(r === 0 ? 4.5 : 3.5 - Math.abs(dx) * 0.5));
 }
 
-function titleText(): void {
-  const g = layout('KALIBRIERUNGSANLAGE', BIG_G, 1, 4);
-  const x0 = 101;
-  const y0 = 37;
+/** Bevelled steel lettering with a dark outline and a hard drop shadow down-right. */
+function steelText(g: Glyph, x0: number, y0: number, shade: Shade): void {
   const m = grid(g.w, g.h, x0, y0, g.bits);
   const box: [number, number, number, number] = [x0, y0, x0 + g.w - 1, y0 + g.h - 1];
-  // Drop shadow then outline.
   const sh = grid(g.w, g.h, x0 + 1, y0 + 1, g.bits);
   ring(sh, [x0 + 1, y0 + 1, x0 + g.w, y0 + g.h], () => 0, 1, (x, y) => !m(x, y));
   ring(m, box, () => 0);
-  bevel(m, box, 1, (k, _d, _x, y) => {
-    const ty = y - y0;
+  // Close single-pixel specks of background left in counters and between letters.
+  const specks: number[] = [];
+  for (let y = y0 - 1; y <= y0 + g.h + 2; y++) {
+    for (let x = x0 - 1; x <= x0 + g.w + 2; x++) {
+      if (m(x, y) || get(x, y) === 0) continue;
+      const dark = (get(x - 1, y) === 0 ? 1 : 0) + (get(x + 1, y) === 0 ? 1 : 0) + (get(x, y - 1) === 0 ? 1 : 0) + (get(x, y + 1) === 0 ? 1 : 0);
+      if (dark >= 3) specks.push(x, y);
+    }
+  }
+  for (let i = 0; i < specks.length; i += 2) set(specks[i], specks[i + 1], 0);
+  bevel(m, box, 1, shade);
+}
+
+const TITLE_X = 101;
+const TITLE_Y = 38;
+
+function titleText(): void {
+  const g = layout('KALIBRIERUNGSANLAGE', BIG_G, 1, 4);
+  steelText(g, TITLE_X, TITLE_Y, (k, _d, _x, y) => {
+    const ty = y - TITLE_Y;
     if (k === 1) return ty < 8 ? 27 : 10;
     if (k === -1) return ty < 8 ? 7 : 6;
     return ty < 6 ? 10 : ty < 11 ? 9 : 8;
   });
 }
 
+function dieText(): void {
+  const y0 = 27;
+  const g = layout('DIE', DIE_G, 1, 2);
+  steelText(g, TITLE_X, y0, (k, _d, _x, y) => {
+    const ty = y - y0;
+    if (k === 1) return ty < 3 ? 27 : 10;
+    if (k === -1) return ty < 3 ? 8 : 7;
+    return ty < 3 ? 10 : ty < 5 ? 9 : 8;
+  });
+}
+
 function numeral(): void {
-  // Roman III with continuous serif bars: 25×24, three 5 px stems with 3 px gaps.
+  // Roman III: three serifed I's (serifs nearly touching), 25×24, 5 px stems with 3 px gaps.
   const rows: string[] = [];
   for (let y = 0; y < 24; y++) {
-    if (y < 3 || y > 20) rows.push('#'.repeat(25));
+    if (y < 3 || y > 20) rows.push('########.#######.########');
     else rows.push('..#####...#####...#####..');
   }
   const x0 = 280;
@@ -548,14 +686,14 @@ function chevronLight(side: number): void {
 }
 
 function bottomStrip(): void {
-  const pts = [104, 87, 251, 87, 251, 96, 100, 96];
-  bevel(poly(pts), bbox(pts), 1, steel([10], [4], [7], (_x, y) => (y < 90 ? 9 : 8)));
+  const pts = [101, 85, 251, 85, 251, 96, 97, 96];
+  bevel(poly(pts), bbox(pts), 1, steel([10], [4], [7], (_x, y) => (y < 89 ? 9 : 8)));
   const s = 'EINRICHTUNG ZUR PRÄZISIONSKALIBRIERUNG';
   const w = smallWidth(s, 1, 3);
-  const x0 = 176 - (w >> 1);
-  smallText(s, x0, 89, 3, 1, 3);
-  set(x0 - 4, 91, 4);
-  set(x0 + w + 3, 91, 4);
+  const x0 = 175 - (w >> 1);
+  smallText(s, x0, 88, 3, 1, 3);
+  set(x0 - 4, 90, 4);
+  set(x0 + w + 3, 90, 4);
 }
 
 function badge(): void {
@@ -567,9 +705,9 @@ function badge(): void {
 
 function vents(): void {
   // Left: green-lit slanted vents next to the medallion; right: dark vents.
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     for (let r = 0; r < 8; r++) {
-      const y = 88 + r;
+      const y = 87 + r;
       const x = 85 + i * 4 + ((7 - r) >> 1);
       set(x, y, grn(r < 2 ? 1.5 : 2.5));
       set(x + 1, y, r === 7 ? 6 : 1);
@@ -645,7 +783,7 @@ function medallion(): void {
         // Segment seams on the inner ring.
         for (const s of [45, 135, 225, 315]) if (angDist(a, s) < 0.9) c = 2;
       } else {
-        c = interior(x, y, r, a, dx);
+        c = interior(r, a, dx);
       }
       set(x, y, c);
     }
@@ -654,7 +792,7 @@ function medallion(): void {
   press();
 }
 
-function interior(x: number, y: number, r: number, a: number, dx: number): number {
+function interior(r: number, a: number, dx: number): number {
   const left = dx < 0;
   // Arc light segments (3 px band just inside the inner ring).
   const segs: [number, number, number][] = [
@@ -680,9 +818,13 @@ function interior(x: number, y: number, r: number, a: number, dx: number): numbe
   }
   if (Math.abs(r - 17.5) < 0.5 && Math.floor(a / 6) % 2 === 0) return left ? 11 : 21;
   // Backdrop: void with a tinted glow toward the arcs.
-  const glow = Math.max(0, (r - 18) / 10);
-  if (glow > 0.5) return left ? 11 : 21;
-  return glow > 0.15 && ((x + y) & 1) === 0 ? (left ? 11 : 21) : 0;
+  if (r > 23) return left ? 11 : 21;
+  // Fine radial scale lines fading into the void.
+  if (r > 19.5) {
+    const t = a / 7.5;
+    if (Math.abs(t - Math.round(t)) < (r > 21.5 ? 0.2 : 0.12)) return left ? 11 : 21;
+  }
+  return 0;
 }
 
 function innerRingLights(): void {
@@ -744,23 +886,26 @@ function press(): void {
   // Holder: side arms around the sphere down to the base.
   const arm = (side: number): void => {
     const X = (o: number) => MX + side * o;
-    const lit = side < 0 ? 9 : 6;
-    const dark = side < 0 ? 6 : 4;
+    const lit = side < 0 ? 10 : 8;
+    const dark = side < 0 ? 7 : 5;
     // Top shoulders from the rod outward.
+    for (let i = 0; i < 4; i++) set(X(3 + i), 33 + (i >> 1), 0);
     for (let i = 0; i < 4; i++) set(X(3 + i), 34 + (i >> 1), lit);
     for (let i = 0; i < 4; i++) set(X(3 + i), 35 + (i >> 1), dark);
-    // Vertical arm around the sphere.
+    // Vertical arm around the sphere, outlined on both sides.
     for (let y = 36; y < 58; y++) {
       const o = y < 38 ? 7 + (y - 36) : y < 55 ? 9 : 9 - (y - 54);
       set(X(o), y, lit);
       set(X(o + 1), y, dark);
       set(X(o + 2), y, 0);
-      set(X(o - 1), y, get(X(o - 1), y) === 255 ? 0 : get(X(o - 1), y));
+      if (o > 7) set(X(o - 1), y, 0);
     }
     // Lower stem walls.
     for (let y = 58; y < 63; y++) {
+      set(X(4), y, 0);
       set(X(5), y, lit);
       set(X(6), y, dark);
+      set(X(7), y, 0);
     }
   };
   arm(-1);
@@ -827,10 +972,12 @@ function press(): void {
         if (rr <= 1.33) set(x, y, 0);
         continue;
       }
+      // Chrome: bright sky reflection above a one-row horizon, lighter ground below.
       let c: number;
-      if (dy < -0.15) c = dy < -0.6 ? 10 : 9;
-      else if (dy < 0.2) c = 5;
-      else c = dy < 0.6 ? 7 : 6;
+      if (dy < -0.55) c = 10;
+      else if (dy < -0.05) c = 9;
+      else if (dy < 0.1) c = 5;
+      else c = dy < 0.6 ? 8 : 7;
       if (rr > 0.62) c = dx < 0 ? red(dy < 0.3 ? 3.3 : 2.4) : grn(dy < 0.3 ? 3.3 : 2.4);
       set(x, y, c);
     }
@@ -853,6 +1000,7 @@ function draw(): void {
   coil();
   taglinePlate();
   well();
+  dieText();
   titleText();
   numeral();
   chevronLight(-1);
@@ -865,10 +1013,37 @@ function draw(): void {
   medallion();
 }
 
-export function bannerPixels(opts: BannerOpts = {}): IndexedPixels {
-  redAmt = Math.max(0, Math.min(1, opts.red ?? 0));
-  grnAmt = Math.max(0, Math.min(1, opts.green ?? 0));
+let base: Uint8Array | null = null;
+let lightAt: Uint32Array = new Uint32Array(0);
+let lightCode: Uint16Array = new Uint16Array(0);
+
+/** Draws the static art once; light pixels are kept as (index, code) pairs. */
+function build(): void {
   buf = new Uint8Array(W * H);
+  codes = new Uint16Array(W * H);
   draw();
-  return { w: W, h: H, data: buf };
+  base = buf;
+  let n = 0;
+  for (let i = 0; i < codes.length; i++) if (codes[i]) n++;
+  lightAt = new Uint32Array(n);
+  lightCode = new Uint16Array(n);
+  n = 0;
+  for (let i = 0; i < codes.length; i++) {
+    if (!codes[i]) continue;
+    lightAt[n] = i;
+    lightCode[n++] = codes[i];
+  }
+}
+
+// The static art is built lazily on the first call (the module is part of the boot
+// bundle, and the banner is only needed once the title screen appears). Every later call
+// is a cheap copy plus a pass over the light pixels (~0.1 ms).
+
+export function bannerPixels(opts: BannerOpts = {}): IndexedPixels {
+  if (!base) build();
+  const r = Math.max(0, Math.min(1, opts.red ?? 0));
+  const g = Math.max(0, Math.min(1, opts.green ?? 0));
+  const data = (base as Uint8Array).slice();
+  for (let k = 0; k < lightAt.length; k++) data[lightAt[k]] = lightColour(lightCode[k], r, g);
+  return { w: W, h: H, data };
 }

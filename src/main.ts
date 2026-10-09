@@ -16,12 +16,14 @@ async function boot(): Promise<void> {
     runArtLab(document.getElementById('ui-root')!);
     return;
   }
+  // Start fetching the engine first; the boot screen renders while it loads.
+  const appModule = import('./game/app');
   installFavicon();
   const settings = loadSettings();
   setBrandMotion(settings.reducedMotion);
   const save = loadSave();
   const bootScreen = showBootScreen({ reduced: settings.reducedMotion, signal: save.ok && save.data.chapterComplete });
-  const { GameApp } = await import('./game/app');
+  const { GameApp } = await appModule;
   const app = new GameApp();
   app.bootScreen = bootScreen;
   if (params.has('e2e') || params.has('debug')) {

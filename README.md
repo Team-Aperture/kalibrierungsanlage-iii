@@ -42,7 +42,7 @@ No backend: the game is a static site. Progress and settings are stored in `loca
 
 ## Chapter 0 at a glance (spoilers)
 
-1. **Das Erwachen** — darkness, a mechanical sound, an indicator light, then a terminal flickers on: *SYSTEMSTATUS: UNBEKANNT*. The camera reveals the room; control arrives about 11 s after *Neues Spiel* (shorter with *Bewegung reduzieren*).
+1. **Das Erwachen** — darkness, a mechanical sound, an indicator light. Then a terminal flickers on, shows its manufacturer's Team_Aperture emblem, and reports *SYSTEMSTATUS: UNBEKANNT*. The camera reveals the room. Control arrives about 12 s after *Neues Spiel* (shorter with *Bewegung reduzieren*).
 2. **Die Wartungszelle** — terminal T-01 reports that Netz B is down, fuse F3 is missing and the conduit path is open. Shelf R-2 holds the fuse. The room also has a workbench with a logbook, scratched tally marks, a fan that turns without power, a flickering lamp, the machine *Messwerk M-3*, and transformer TR-1, which you can walk behind.
 3. **Puzzle 01 — Der Energiepfad** — a 3×3 conduit matrix in distribution panel V-2 with a welded middle segment and a burnt segment that must stay dead. Three-stage hints, undo, reset, and full keyboard and touch support.
 4. **Response** — the lights strike and strobe on, the machine starts, and the door lamp goes red → amber → green. The bolts retract and the bulkhead lifts while the camera pans to it.
