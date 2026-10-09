@@ -612,11 +612,11 @@ function screenRaster(mode: typeof screen.mode, t: number): Uint8Array {
   for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) r[y * w + x] = y % 2 === 0 ? C.G0 : C.G1;
   const frame = Math.floor(t / 220);
   if (mode === 'logo') {
-    drawScreenEmblem(r, w, hh, { ms: t, boot: screen.t < 0 ? 0 : (t - screen.t) / 700 });
+    drawScreenEmblem(r, w, hh, { ms: t, boot: screen.t < 0 ? 0 : (t - screen.t) / 700, clear: C.G0 });
     return r;
   }
   if (mode === 'ok' && t % OK_CYCLE >= OK_LOGO_AT) {
-    drawScreenEmblem(r, w, hh, { ms: t, boot: ((t % OK_CYCLE) - OK_LOGO_AT) / 550 });
+    drawScreenEmblem(r, w, hh, { ms: t, boot: ((t % OK_CYCLE) - OK_LOGO_AT) / 550, clear: C.G0 });
     return r;
   }
   if (mode === 'boot') {

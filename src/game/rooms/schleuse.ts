@@ -616,7 +616,7 @@ function t07Raster(mode: typeof t07.mode, t: number): Uint8Array {
         const y = Math.floor(Math.random() * h);
         r[y * w + x] = Math.random() > 0.5 ? C.G2 : C.MINT;
       }
-    } else drawScreenEmblem(r, w, h, { ms: t, boot: (p - 0.25) / 0.75 });
+    } else drawScreenEmblem(r, w, h, { ms: t, boot: (p - 0.25) / 0.75, clear: C.G0 });
     return r;
   }
   if (mode === 'saved') {

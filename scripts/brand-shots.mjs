@@ -75,8 +75,9 @@ const state = (room, x, y, facing, extra = {}) => `(() => {
     return t > 6500 && t < 8000;
   }, null, { timeout: 20000, polling: 50 });
   await page.screenshot({ path: `${OUT}/_t01.png` });
-  const p = await page.evaluate(() => window.__ka3.debugHotspot('terminal'));
-  crop(`${OUT}/_t01.png`, `${OUT}/inworld-t01.png`, p.x - 130, p.y - 10, 260, 146, 3);
+  // Centre of T-01's screen face (see TERMINAL_SCREEN).
+  const p = await page.evaluate(() => window.__ka3.debugScreenPoint(41.5, 13, 29.5));
+  crop(`${OUT}/_t01.png`, `${OUT}/inworld-t01.png`, p.x - 120, p.y - 68, 240, 135, 4);
   await page.keyboard.press('Escape').catch(() => {});
   await page.context().close();
 }

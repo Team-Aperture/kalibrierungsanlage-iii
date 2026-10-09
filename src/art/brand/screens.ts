@@ -11,10 +11,13 @@ export interface ScreenEmblemOpts {
   x?: number;
   y?: number;
   still?: boolean;
+  /** Fill the whole raster with this index first (a calm backdrop for the emblem). */
+  clear?: number;
 }
 
 /** Draws the badge emblem into a monitor raster of size w × h. */
 export function drawScreenEmblem(r: Uint8Array, w: number, h: number, o: ScreenEmblemOpts): void {
+  if (o.clear !== undefined) r.fill(o.clear);
   const px = o.boot !== undefined && o.boot < 1 ? emblemBoot('badge', o.boot) : emblem('badge', brandPulse(o.ms, o.still));
   const x0 = o.x ?? Math.floor((w - px.w) / 2);
   const y0 = o.y ?? Math.floor((h - px.h) / 2);
