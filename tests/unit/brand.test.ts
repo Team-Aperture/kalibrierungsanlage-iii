@@ -113,6 +113,8 @@ describe('brand effects', () => {
     expect(stepped(C.RED, 1)).toBe(C.SALMON);
     // The emblem's dark red (brown-black under the red floor glow) brightens into red.
     expect(UP[C.BR0]).toBe(C.RED_D);
+    // …and the spark's peach dims to a neutral amber, not to the red side.
+    expect(DOWN[C.PEACH]).toBe(C.AMBER);
     expect(stepped(C.MINT, -1)).toBe(C.G2);
     expect(stepped(255, 2)).toBe(255);
   });

@@ -18,12 +18,12 @@ const T = 255;
 export const UP = new Uint8Array(256).fill(T);
 export const DOWN = new Uint8Array(256).fill(T);
 {
-  // Order matters for shared entries: the red chain precedes the brown one, so the
-  // emblem's dark red (brown-black 11 under the red floor glow) brightens into red.
+  // Shared entries step along the first chain that lists them (peach dims to amber, a
+  // neutral warm glow for the spark).
   const chains: number[][] = [
     [C.VOID, C.S1, C.S2, C.S3, C.S4, C.S5, C.S6, C.S7, C.S8, C.S9, C.S10, C.WHITE],
-    [C.VOID, C.BR0, C.RED_D, C.RED, C.SALMON, C.PEACH, C.WHITE],
     [C.VOID, C.BR0, C.BR1, C.BR2, C.BR3, C.BR4, C.OCHRE, C.AMBER, C.PEACH, C.WHITE],
+    [C.VOID, C.BR0, C.RED_D, C.RED, C.SALMON, C.PEACH, C.WHITE],
     [C.VOID, C.G0, C.G1, C.G2, C.MINT, C.CYAN, C.WHITE],
   ];
   for (const ch of chains) {
@@ -34,6 +34,9 @@ export const DOWN = new Uint8Array(256).fill(T);
       if (DOWN[c] === T) DOWN[c] = ch[Math.max(0, i - 1)];
     }
   }
+  // Brand art only uses brown-black 11 as the dark end of the red ramp (under the red
+  // floor glow), so it brightens into red rather than up the brown ramp.
+  UP[C.BR0] = C.RED_D;
 }
 
 export function stepped(c: number, steps: number): number {
