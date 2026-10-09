@@ -10,6 +10,7 @@ import { fbm, hash2, smoothstep, valueNoise } from '../../core/rng';
 import type { Light, LightingState, Occluder } from '../light';
 import { M } from '../materials';
 import { C } from '../palette';
+import { emblemDecal, type DecalOpts } from '../brand/decal';
 import { bevel, darkPaint, grime, hazard, inRect, rivets, rustStreaks, seam, stencil, steel, vent } from '../shaders';
 import { FACE, Surface, TAG, type Shader } from '../surface';
 
@@ -134,6 +135,11 @@ const backWallShader: Shader = (f) => {
   return true;
 };
 
+/** Painted emblem on the hall wall left of the entrance (face coordinates). */
+export const HALL_EMBLEM: DecalOpts = { variant: 'simple', u0: 82, vTop: SL.PD + 56, wear: 0.16, seed: 360, glow: true };
+/** Wall lamp above the mural (strip on the wall; the matching light is in LIGHTING.hall). */
+const MURAL_LAMP = { y: SL.PY - 82 - 24, z: 58.5 };
+
 const leftWallShader: Shader = (f) => {
   // +x face of the left wall: u = PY − y, v = z + PD.
   const y = f.y;
@@ -156,6 +162,19 @@ const leftWallShader: Shader = (f) => {
     // Upper hall wall beyond the walkway.
     darkPaint(f, 0.36, 353);
     if (seam(f.u, 40, 1)) f.alb -= 0.1;
+    // The Team_Aperture emblem, painted large and worn, with luminous arcs and eyes,
+    // under a small wall lamp (its light only exists while the hall is lit).
+    if (emblemDecal(f, HALL_EMBLEM)) return true;
+    if (Math.abs(z - MURAL_LAMP.z) < 1.2 && Math.abs(y - MURAL_LAMP.y) < 5) {
+      f.mat = M.STEEL;
+      f.alb = 0.5;
+      // Lit by its own light (bright in LIGHTING.hall), so it goes dark in the blackout.
+      if (z < MURAL_LAMP.z) {
+        f.mat = M.AMBER_FLAT;
+        f.alb = Math.abs(y - MURAL_LAMP.y) < 3.5 ? 1 : 0.8;
+      }
+      return true;
+    }
     if (Math.abs(z - 64) < 4) {
       steel(f, 0.55, 354);
       if (stencil(f, 'HALLE 0', PY - 150, 66)) f.alb = 0.95;
@@ -582,7 +601,9 @@ export function buildCrates2(): Surface {
   s.box(x0, y0, 0, x1, y1, z1, (f) => {
     darkPaint(f, 0.46, 481);
     if (f.u < 1.2 || f.u > f.w - 1.2 || f.v < 1.2 || f.v > f.h - 1.2) f.alb += 0.15;
-    if (f.tag === FACE.LEFT && stencil(f, 'KA', 6, 12)) {
+    // Team_Aperture sticker on the front, the KA mark moved to the side.
+    if (f.tag === FACE.LEFT && emblemDecal(f, { variant: 'badge', u0: 1, vTop: 16.5, wear: 0.1, seed: 482 })) return true;
+    if (f.tag === FACE.RIGHT && stencil(f, 'KA', 3.5, 12)) {
       f.mat = M.HAZARD;
       f.alb = 0.8;
     }
@@ -822,6 +843,7 @@ export const LIGHTING: Record<string, LightingState> = {
       { x: 64, y: 14, z: -50, radius: 80, intensity: 0.9, hue: 'cold', wrap: 0.5 },
       { x: 70, y: 128, z: -70, radius: 90, intensity: 0.85, hue: 'amber', wrap: 0.5 },
       { x: 200, y: 230, z: 60, radius: 320, intensity: 0.38, hue: 'cold', wrap: 0.8 },
+      { x: 5, y: MURAL_LAMP.y, z: MURAL_LAMP.z - 2, radius: 50, intensity: 0.95, hue: 'neutral', wrap: 0.7 },
     ],
   },
   dark: {

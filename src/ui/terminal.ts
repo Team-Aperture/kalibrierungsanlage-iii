@@ -4,6 +4,7 @@
  * Line prefixes: "!" warning (amber), "x" error (red), "~" dim, " " normal.
  */
 
+import { emblemMark } from './brand';
 import { button, h } from './dom';
 import type { Modal } from './ui';
 
@@ -23,7 +24,7 @@ export function reader(o: ReaderOpts): Modal & { done: Promise<void> } {
   const view = h(
     'div',
     { class: `terminal-view ${o.paper ? 'paper' : ''}`, role: 'dialog', 'aria-label': o.title },
-    h('div', { class: 'bar' }, h('span', { text: o.title }), close),
+    h('div', { class: 'bar' }, o.paper ? null : emblemMark('badge', { scale: 2, boot: 0, crt: true, cls: 'term-badge' }), h('span', { class: 'bar-title', text: o.title }), close),
     screen,
   );
   let skip = false;

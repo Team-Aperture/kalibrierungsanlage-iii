@@ -12,6 +12,7 @@ import { WZ, type Box3 } from '../../content/rooms/wartungszelle.layout';
 import { bakedInfo } from '../../art/bake';
 import { C } from '../../art/palette';
 import { drawText } from '../../art/font';
+import { drawScreenEmblem, screenEmblemState, type ScreenEmblemOpts } from '../../art/brand/screens';
 import { DOOR_LAMP, LIGHTING, PANEL_SPARK, TALLY_COUNT, TERMINAL_SCREEN } from '../../art/rooms/wartungszelle';
 import { bakeWartungszelle, WZK, wzArt } from '../../art/rooms/wartungszelleBake';
 import { evaluate, ENERGIEPFAD } from '../puzzles/energiepfad';
@@ -573,8 +574,12 @@ async function intro(ctx: ScriptCtx): Promise<void> {
       screen.mode = v > 0 ? 'boot' : 'off';
       if (ms) await ctx.wait(ms);
     }
+    // Manufacturer splash: the Team_Aperture emblem powers on, then the boot text.
+    screen.mode = 'logo';
+    screen.t = -1;
+    await ctx.wait(rm ? 400 : 1500);
     screen.mode = 'boot';
-    await ctx.wait(rm ? 300 : 700);
+    await ctx.wait(rm ? 300 : 600);
     screen.mode = 'unknown';
     ctx.app.ui.setStatus('SYSTEMSTATUS: UNBEKANNT');
     await ctx.app.ui.bigMessage('SYSTEMSTATUS: UNBEKANNT', rm ? 1400 : 2300);
@@ -593,15 +598,37 @@ async function intro(ctx: ScriptCtx): Promise<void> {
 // Terminal screen content (in-world)
 // ---------------------------------------------------------------------------
 
-const screen: { mode: 'off' | 'boot' | 'unknown' | 'idle' | 'ok'; t: number } = { mode: 'idle', t: 0 };
+const screen: { mode: 'off' | 'logo' | 'boot' | 'unknown' | 'idle' | 'ok'; t: number } = { mode: 'idle', t: 0 };
 
-function screenRaster(mode: typeof screen.mode, t: number): Uint8Array {
+/** After power returns, T-01 alternates between its status and the emblem (ms). */
+const OK_CYCLE = 9000;
+const OK_LOGO_AT = 5600;
+
+/**
+ * The emblem phases of T-01: the manufacturer splash in the intro and, once powered, a
+ * re-synced emblem every OK_CYCLE. `calm` (reduced motion or no flicker) shows the
+ * settled emblem without the CRT boot flash and without the light pulse.
+ */
+function screenEmblemOpts(mode: typeof screen.mode, t: number, calm: boolean): ScreenEmblemOpts | null {
+  let boot: number;
+  if (mode === 'logo') boot = screen.t < 0 ? 0 : (t - screen.t) / 700;
+  else if (mode === 'ok' && t % OK_CYCLE >= OK_LOGO_AT) boot = ((t % OK_CYCLE) - OK_LOGO_AT) / 550;
+  else return null;
+  return calm ? { ms: t, still: true, clear: C.G0 } : { ms: t, boot, clear: C.G0 };
+}
+
+function screenRaster(mode: typeof screen.mode, t: number, calm = false): Uint8Array {
   const w = TERMINAL_SCREEN.w;
   const hh = TERMINAL_SCREEN.h;
   const r = new Uint8Array(w * hh).fill(255);
   if (mode === 'off') return r;
   for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) r[y * w + x] = y % 2 === 0 ? C.G0 : C.G1;
   const frame = Math.floor(t / 220);
+  const emblemOpts = screenEmblemOpts(mode, t, calm);
+  if (emblemOpts) {
+    drawScreenEmblem(r, w, hh, emblemOpts);
+    return r;
+  }
   if (mode === 'boot') {
     for (let row = 0; row < 7; row++) {
       const y = 1 + row * 2;
@@ -744,10 +771,13 @@ function setupOverlays(ctx: ScriptCtx) {
   let lastScreen = '';
   const drawScreen = (time: number) => {
     const mode = screen.mode === 'idle' && powered(s) ? 'ok' : screen.mode;
-    const key = `${mode}:${Math.floor(time / 220)}`;
+    if (mode === 'logo' && screen.t < 0) screen.t = time;
+    const calm = ctx.settings.reducedMotion || !ctx.settings.flicker;
+    const emblemOpts = screenEmblemOpts(mode, time, calm);
+    const key = emblemOpts ? `${mode}:${screenEmblemState(emblemOpts)}` : `${mode}:${Math.floor(time / 220)}`;
     if (key === lastScreen) return;
     lastScreen = key;
-    art.screen.renderInto(screenTex.getContext(), screenRaster(mode, time));
+    art.screen.renderInto(screenTex.getContext(), screenRaster(mode, time, calm));
     screenTex.refresh();
   };
 

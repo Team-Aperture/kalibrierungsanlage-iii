@@ -2,16 +2,12 @@ import '@fontsource/share-tech-mono/400.css';
 import '@fontsource/space-mono/700.css';
 import '@fontsource/vt323/400.css';
 import './ui/styles.css';
+import { loadSave } from './state/save';
+import { loadSettings } from './state/settings';
+import { showBootScreen } from './ui/boot';
+import { setBrandMotion } from './ui/brand';
 
 const params = new URLSearchParams(location.search);
-
-function showLoader(): void {
-  const el = document.createElement('div');
-  el.id = 'loader';
-  el.className = 'loader';
-  el.innerHTML = '<div>◤ KA-III</div><div class="bar"><i></i></div><div class="label">INITIALISIERE</div>';
-  document.body.append(el);
-}
 
 async function boot(): Promise<void> {
   if (import.meta.env.DEV && params.has('lab')) {
@@ -19,9 +15,16 @@ async function boot(): Promise<void> {
     runArtLab(document.getElementById('ui-root')!);
     return;
   }
-  showLoader();
-  const { GameApp } = await import('./game/app');
+  // Start fetching the engine first; the boot screen renders while it loads.
+  const appModule = import('./game/app');
+  const settings = loadSettings();
+  setBrandMotion(settings.reducedMotion);
+  document.body.classList.toggle('reduce-motion', settings.reducedMotion);
+  const save = loadSave();
+  const bootScreen = showBootScreen({ reduced: settings.reducedMotion, signal: save.ok && save.data.chapterComplete });
+  const { GameApp } = await appModule;
   const app = new GameApp();
+  app.bootScreen = bootScreen;
   if (params.has('e2e') || params.has('debug')) {
     (window as unknown as { __ka3: unknown }).__ka3 = app;
   }
