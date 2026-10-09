@@ -137,6 +137,8 @@ const backWallShader: Shader = (f) => {
 
 /** Painted emblem on the hall wall left of the entrance (face coordinates). */
 export const HALL_EMBLEM: DecalOpts = { variant: 'simple', u0: 82, vTop: SL.PD + 56, wear: 0.16, seed: 360, glow: true };
+/** Wall lamp above the mural (strip on the wall; the matching light is in LIGHTING.hall). */
+const MURAL_LAMP = { y: SL.PY - 82 - 24, z: 58.5 };
 
 const leftWallShader: Shader = (f) => {
   // +x face of the left wall: u = PY − y, v = z + PD.
@@ -160,8 +162,15 @@ const leftWallShader: Shader = (f) => {
     // Upper hall wall beyond the walkway.
     darkPaint(f, 0.36, 353);
     if (seam(f.u, 40, 1)) f.alb -= 0.1;
-    // The Team_Aperture emblem, painted large and worn, with luminous arcs and eyes.
+    // The Team_Aperture emblem, painted large and worn, with luminous arcs and eyes,
+    // under a small wall lamp (its light only exists while the hall is lit).
     if (emblemDecal(f, HALL_EMBLEM)) return true;
+    if (Math.abs(z - MURAL_LAMP.z) < 1.2 && Math.abs(y - MURAL_LAMP.y) < 5) {
+      f.mat = M.STEEL;
+      f.alb = 0.5;
+      if (z < MURAL_LAMP.z) f.emi = Math.abs(y - MURAL_LAMP.y) < 3.5 ? C.PEACH : C.AMBER;
+      return true;
+    }
     if (Math.abs(z - 64) < 4) {
       steel(f, 0.55, 354);
       if (stencil(f, 'HALLE 0', PY - 150, 66)) f.alb = 0.95;
@@ -830,6 +839,7 @@ export const LIGHTING: Record<string, LightingState> = {
       { x: 64, y: 14, z: -50, radius: 80, intensity: 0.9, hue: 'cold', wrap: 0.5 },
       { x: 70, y: 128, z: -70, radius: 90, intensity: 0.85, hue: 'amber', wrap: 0.5 },
       { x: 200, y: 230, z: 60, radius: 320, intensity: 0.38, hue: 'cold', wrap: 0.8 },
+      { x: 5, y: MURAL_LAMP.y, z: MURAL_LAMP.z - 2, radius: 50, intensity: 0.95, hue: 'neutral', wrap: 0.7 },
     ],
   },
   dark: {

@@ -979,6 +979,9 @@ body.reduce-motion .btn.attention {
 
 /* Portrait phones: stacked buttons, the studio mark under the menu. */
 @media (max-width: 560px) and (orientation: portrait) {
+  .hero-light {
+    display: none;
+  }
   .title-screen .sys-bar {
     flex-direction: column;
     gap: 3px;

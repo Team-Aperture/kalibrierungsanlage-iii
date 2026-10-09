@@ -98,7 +98,7 @@ export function mainMenu(o: MainMenuOpts): Modal {
     if (!cv) return;
     const portrait = window.innerHeight > window.innerWidth;
     const maxW = Math.min(window.innerWidth - 40, 1160) / cv.width;
-    const maxH = (window.innerHeight * (portrait ? 0.3 : 0.4)) / cv.height;
+    const maxH = (window.innerHeight * (portrait ? 0.3 : 0.44)) / cv.height;
     const s = crispScale(Math.min(maxW, maxH, 4));
     cv.style.width = `${cv.width * s}px`;
     cv.style.height = `${cv.height * s}px`;

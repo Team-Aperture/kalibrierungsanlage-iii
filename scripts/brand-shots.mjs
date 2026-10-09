@@ -76,7 +76,7 @@ const state = (room, x, y, facing, extra = {}) => `(() => {
   }, null, { timeout: 20000, polling: 50 });
   await page.screenshot({ path: `${OUT}/_t01.png` });
   const p = await page.evaluate(() => window.__ka3.debugHotspot('terminal'));
-  crop(`${OUT}/_t01.png`, `${OUT}/inworld-t01.png`, p.x - 160, p.y - 20, 320, 180, 2);
+  crop(`${OUT}/_t01.png`, `${OUT}/inworld-t01.png`, p.x - 130, p.y - 10, 260, 146, 3);
   await page.keyboard.press('Escape').catch(() => {});
   await page.context().close();
 }

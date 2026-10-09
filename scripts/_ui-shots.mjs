@@ -1,0 +1,16 @@
+import { chromium } from '@playwright/test';
+const OUT = process.argv[2];
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
+const errs = []; page.on('pageerror', (e) => errs.push(e.message));
+await page.goto('http://localhost:5173/kalibrierungsanlage-iii/?e2e=1');
+await page.waitForFunction(() => window.__ka3?.mode === 'menu', null, { timeout: 90000 });
+await page.click('#btn-new');
+await page.waitForFunction(() => window.__ka3.state.flag('intro.done') && !window.__ka3.scene.inputLocked, null, { timeout: 40000 });
+await page.evaluate(() => { void window.__ka3.openReader('TERMINAL T-01', [' SYSTEMSTATUS: UNBEKANNT', '!NETZ B: AUSGEFALLEN', 'xSICHERUNG F3: FEHLT'], false); });
+await page.waitForTimeout(250);
+await page.screenshot({ path: `${OUT}/reader-boot.png` });
+await page.waitForTimeout(1600);
+await page.screenshot({ path: `${OUT}/reader.png` });
+console.log(errs.join('\n') || 'no errors');
+await browser.close();
